@@ -50,7 +50,7 @@ def get_parser():
 
     verstr = 'fmriprep v{}'.format(__version__)
 
-    parser = ArgumentParser(description='FMRIPREP: fMRI PREProcessing workflows',
+    parser = ArgumentParser(description='FMRIPREP with ASL : fMRI PREProcessing workflows',
                             formatter_class=RawTextHelpFormatter)
 
     # Arguments as specified by BIDS-Apps
@@ -65,6 +65,7 @@ def get_parser():
     parser.add_argument('analysis_level', choices=['participant'],
                         help='processing stage to be run, only "participant" in the case of '
                              'FMRIPREP (see BIDS-Apps specification).')
+
 
     # optional arguments
     parser.add_argument('--version', action='version', version=verstr)
@@ -117,6 +118,40 @@ def get_parser():
     g_perfm.add_argument('--debug', action='store_true', default=False,
                          help='DEPRECATED - Does not do what you want.')
 
+    ## adding ASLpart
+    g_asl=parser.add_argument('ASL preprocessing')
+    
+    g_asl.add_argument('--asl_file', metavar='PATH', required=False, type=os.path.abspath,
+                       help='The raw cbf file.')
+    g_asl.add_argument('--m0_file', metavar='PATH', required=False, type=os.path.abspath,
+                       help='The raw cbf file.')
+    g_asl.add_argument( '--LabelingType', required=False, action='store', choices=['PASL','CASL'],
+        default='PASL',
+        help='PASL (pulsed ASL), ‘CASL’ (continuous ASL), ‘PCASL’ (pseudocontinuous ASL).\n' 
+            'Note that pseudo-continuous ASL (PCASL) is a modification of CASL, \n'
+            'and uses the same quantification' )
+    g_asl.add_argument( '--LabellingDuration', required=False, action='store',type=int, default=1.8,
+        help='The temporal width of the labeling bolus(labeling duration for pCASL and CASL')
+
+    g_asl.add_argument('--LabellingDuration', required=False, action='store', type=int, default=1.8,
+                       help='The temporal width of the labeling bolus(labeling duration for pCASL and CASL')
+    g_asl.add_argument('--M0_scaling', required=False, action='store', type=int, default=1,
+                       help='Scale ratio of M0 to aslfile, 1 is default')
+
+    g_asl.add_argument('--M0_scaling', required=False, action='store', type=int, default=1,
+                       help='Scale ratio of M0 to aslfile, 1 is default')
+    
+    g_asl.add_argument('--aslcontext', required=False, action='store', choices=['Label_Control', 'Control_Label','DletaM'],
+                       default='Label_Control', help='acqusition type')
+    
+    g_asl.add_argument('--PulseDuration', required=False, action='store', type=int, default=1.8,
+                       help='it is optional for PCASL')
+    g_asl.add_argument('--LabellingEfficiency', required=False, action='store', type=int, default=0.9,
+                       help=' May be used if the labelling efficiency was estimated')
+    
+    
+
+    
     g_conf = parser.add_argument_group('Workflow configuration')
     g_conf.add_argument(
         '--ignore', required=False, action='store', nargs="+", default=[],

@@ -536,52 +536,6 @@ to workflows in *fMRIPrep*'s documentation]\
                'inputnode.t1_2_fsnative_reverse_transform')]),
         ])
 
-    for asl_file in subject_data['asl']:
-        asl_preproc_wf = init_asl_preproc_wf(asl_file=bold_file,
-                                               layout=layout,
-                                               ignore=ignore,
-                                               freesurfer=freesurfer,
-                                               use_bbr=use_bbr,
-                                               t2s_coreg=t2s_coreg,
-                                               bold2t1w_dof=bold2t1w_dof,
-                                               reportlets_dir=reportlets_dir,
-                                               output_spaces=output_spaces,
-                                               template=template,
-                                               medial_surface_nan=medial_surface_nan,
-                                               cifti_output=cifti_output,
-                                               output_dir=output_dir,
-                                               omp_nthreads=omp_nthreads,
-                                               low_mem=low_mem,
-                                               fmap_bspline=fmap_bspline,
-                                               fmap_demean=fmap_demean,
-                                               use_syn=use_syn,
-                                               force_syn=force_syn,
-                                               debug=debug,
-                                               template_out_grid=template_out_grid,
-                                               use_aroma=use_aroma,
-                                               aroma_melodic_dim=aroma_melodic_dim,
-                                               err_on_aroma_warn=err_on_aroma_warn,
-                                               num_bold=len(subject_data['bold']))
-
-        workflow.connect([
-            (anat_preproc_wf, asl_preproc_wf,
-             [(('outputnode.t1_preproc', _pop), 'inputnode.t1_preproc'),
-              ('outputnode.t1_brain', 'inputnode.t1_brain'),
-              ('outputnode.t1_mask', 'inputnode.t1_mask'),
-              ('outputnode.t1_seg', 'inputnode.t1_seg'),
-              ('outputnode.t1_aseg', 'inputnode.t1_aseg'),
-              ('outputnode.t1_aparc', 'inputnode.t1_aparc'),
-              ('outputnode.t1_tpms', 'inputnode.t1_tpms'),
-              ('outputnode.t1_2_mni_forward_transform', 'inputnode.t1_2_mni_forward_transform'),
-              ('outputnode.t1_2_mni_reverse_transform', 'inputnode.t1_2_mni_reverse_transform'),
-              # Undefined if --no-freesurfer, but this is safe
-              ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
-              ('outputnode.subject_id', 'inputnode.subject_id'),
-              ('outputnode.t1_2_fsnative_forward_transform',
-               'inputnode.t1_2_fsnative_forward_transform'),
-              ('outputnode.t1_2_fsnative_reverse_transform',
-               'inputnode.t1_2_fsnative_reverse_transform')]),
-
     return workflow
 
 
