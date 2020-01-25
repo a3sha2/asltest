@@ -24,8 +24,8 @@ def get_keywords():
     # each be defined on a line of their own. _version.py will just call
     # get_keywords().
     git_refnames = " (HEAD -> master)"
-    git_full = "e11fd3140c245031667f20c06c29d4c41d8e66ff"
-    git_date = "2019-03-19 19:09:22 -0400"
+    git_full = "3621181c980a76769bfbb7545f74cf293f6c69c3"
+    git_date = "2020-01-24 14:08:11 -0500"
     keywords = {"refnames": git_refnames, "full": git_full, "date": git_date}
     return keywords
 
@@ -196,7 +196,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
     if verbose:
         print("likely tags: %s" % ",".join(sorted(tags)))
     for ref in sorted(tags):
-        # sorting will prefer e.g. "2.0" over "2.0rc1"
+        # sorting will prefer e.g., "2.0" over "2.0rc1"
         if ref.startswith(tag_prefix):
             r = ref[len(tag_prefix):]
             if verbose:

@@ -44,6 +44,7 @@ extensions = [
     'sphinxarg.ext',  # argparse extension
     'nipype.sphinxext.plot_workflow',
     'nbsphinx',
+    'sphinxcontrib.napoleon',
 ]
 
 # Mock modules in autodoc:
@@ -63,6 +64,16 @@ if pver.parse(sphinxversion) >= pver.parse('1.7.0'):
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# Accept custom section names to be parsed for numpy-style docstrings
+# of parameters.
+# Requires pinning sphinxcontrib-napoleon to a specific commit while
+# https://github.com/sphinx-contrib/napoleon/pull/10 is merged.
+napoleon_use_param = False
+napoleon_custom_sections = [
+    ('Inputs', 'Parameters'),
+    ('Outputs', 'Parameters'),
+]
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 # source_suffix = ['.rst', '.md']
@@ -76,7 +87,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'fmriprep'
-author = 'The FMRIPREP developers'
+author = 'The fMRIPrep developers'
 copyright = '2016-%s, %s' % (datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
@@ -213,7 +224,7 @@ html_static_path = ['_static']
 # base URL from which the finished HTML is served.
 # html_use_opensearch = ''
 
-# This is the file name suffix for HTML files (e.g. ".xhtml").
+# This is the file name suffix for HTML files (e.g., ".xhtml").
 # html_file_suffix = None
 
 # Language to be used for generating the HTML full-text search index.
