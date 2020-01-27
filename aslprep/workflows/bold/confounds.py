@@ -1,10 +1,10 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """
-Calculate BOLD confounds
+Calculate asl confounds
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: init_bold_confs_wf
+.. autofunction:: init_asl_confs_wf
 .. autofunction:: init_ica_aroma_wf
 
 """
@@ -39,18 +39,15 @@ from ...interfaces import (
 )
 
 
-def init_bold_confs_wf(
+def init_asl_confs_wf(
     mem_gb,
     metadata,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
-    name="bold_confs_wf",
+    name="asl_confs_wf",
 ):
     """
     Build a workflow to generate and write out confounding signals.
 
-    This workflow calculates confounds for a BOLD series, and aggregates them
+    This workflow calculates confounds for a asl series, and aggregates them
     into a :abbr:`TSV (tab-separated value)` file, for use as nuisance
     regressors in a :abbr:`GLM (general linear model)`.
     The following confounds are calculated, with column headings in parentheses:
@@ -79,8 +76,8 @@ def init_bold_confs_wf(
             :graph2use: orig
             :simple_form: yes
 
-            from fmriprep.workflows.bold.confounds import init_bold_confs_wf
-            wf = init_bold_confs_wf(
+            from fmriprep.workflows.asl.confounds import init_asl_confs_wf
+            wf = init_asl_confs_wf(
                 mem_gb=1,
                 metadata={},
                 regressors_all_comps=False,
@@ -91,13 +88,13 @@ def init_bold_confs_wf(
     Parameters
     ----------
     mem_gb : float
-        Size of BOLD file in GB - please note that this size
+        Size of asl file in GB - please note that this size
         should be calculated after resamplings that may extend
         the FoV
     metadata : dict
-        BIDS metadata for BOLD file
+        BIDS metadata for asl file
     name : str
-        Name of workflow (default: ``bold_confs_wf``)
+        Name of workflow (default: ``asl_confs_wf``)
     regressors_all_comps: bool
         Indicates whether CompCor decompositions should return all
         components instead of the minimal number of components necessary
@@ -109,11 +106,11 @@ def init_bold_confs_wf(
 
     Inputs
     ------
-    bold
-        BOLD image, after the prescribed corrections (STC, HMC and SDC)
+    asl
+        asl image, after the prescribed corrections (STC, HMC and SDC)
         when available.
-    bold_mask
-        BOLD series mask
+    asl_mask
+        asl series mask
     movpar_file
         SPM-formatted motion parameters file
     skip_vols
@@ -122,9 +119,9 @@ def init_bold_confs_wf(
         Mask of the skull-stripped template image
     t1w_tpms
         List of tissue probability maps in T1w space
-    t1_bold_xform
+    t1_asl_xform
         Affine matrix that maps the T1w space into alignment with
-        the native BOLD space
+        the native asl space
 
     Outputs
     -------
@@ -132,7 +129,7 @@ def init_bold_confs_wf(
         TSV of all aggregated confounds
     rois_report
         Reportlet visualizing white-matter/CSF mask used for aCompCor,
-        the ROI for tCompCor and the BOLD brain mask.
+        the ROI for tCompCor and the asl brain mask.
     confounds_metadata
         Confounds metadata dictionary.
 
@@ -140,7 +137,7 @@ def init_bold_confs_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 Several confounding time-series were calculated based on the
-*preprocessed BOLD*: framewise displacement (FD), DVARS and
+*preprocessed asl*: framewise displacement (FD), DVARS and
 three region-wise global signals.
 FD and DVARS are calculated for each functional run, both using their
 implementations in *Nipype* [following the definitions by @power_fd_dvars].
@@ -149,7 +146,7 @@ the whole-brain masks.
 Additionally, a set of physiological regressors were extracted to
 allow for component-based noise correction [*CompCor*, @compcor].
 Principal components are estimated after high-pass filtering the
-*preprocessed BOLD* time-series (using a discrete cosine filter with
+*preprocessed asl* time-series (using a discrete cosine filter with
 128s cut-off) for the two *CompCor* variants: temporal (tCompCor)
 and anatomical (aCompCor).
 tCompCor components are then calculated from the top 5% variable
@@ -159,7 +156,7 @@ which ensures it does not include cortical GM regions.
 For aCompCor, components are calculated within the intersection of
 the aforementioned mask and the union of CSF and WM masks calculated
 in T1w space, after their projection to the native space of each
-functional run (using the inverse BOLD-to-T1w transformation). Components
+functional run (using the inverse asl-to-T1w transformation). Components
 are also calculated separately within the WM and CSF masks.
 For each CompCor decomposition, the *k* components with the largest singular
 values are retained, such that the retained components' time series are
@@ -173,10 +170,10 @@ signals were expanded with the inclusion of temporal derivatives and
 quadratic terms for each [@confounds_satterthwaite_2013].
 Frames that exceeded a threshold of {fd} mm FD or {dv} standardised DVARS
 were annotated as motion outliers.
-""".format(fd=regressors_fd_th, dv=regressors_dvars_th)
+""".format()
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['bold', 'bold_mask', 'movpar_file', 'skip_vols',
-                't1w_mask', 't1w_tpms', 't1_bold_xform']),
+        fields=['asl', 'asl_mask', 'movpar_file', 'skip_vols',
+                't1w_mask', 't1w_tpms', 't1_asl_xform']),
         name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['confounds_file', 'confounds_metadata']),
@@ -192,7 +189,7 @@ were annotated as motion outliers.
         erode_prop=0.6, mask_erode_prop=0.6**3),  # 0.6 = radius; 0.6^3 = volume
         name='acc_roi')
 
-    # Map ROIs in T1w space into BOLD space
+    # Map ROIs in T1w space into asl space
     csf_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
                       name='csf_tfm', mem_gb=0.1)
     wm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
@@ -232,17 +229,17 @@ were annotated as motion outliers.
         name="acompcor", mem_gb=mem_gb)
 
     # Set number of components
-    if regressors_all_comps:
-        acompcor.inputs.num_components = 'all'
-        tcompcor.inputs.num_components = 'all'
-    else:
-        acompcor.inputs.variance_threshold = 0.5
-        tcompcor.inputs.variance_threshold = 0.5
+    #if regressors_all_comps:
+    #    acompcor.inputs.num_components = 'all'
+    #    tcompcor.inputs.num_components = 'all'
+    #else:
+        #acompcor.inputs.variance_threshold = 0.5
+        #tcompcor.inputs.variance_threshold = 0.5
 
     # Set TR if present
-    if 'RepetitionTime' in metadata:
-        tcompcor.inputs.repetition_time = metadata['RepetitionTime']
-        acompcor.inputs.repetition_time = metadata['RepetitionTime']
+    #if 'RepetitionTime' in metadata:
+        #tcompcor.inputs.repetition_time = metadata['RepetitionTime']
+        #acompcor.inputs.repetition_time = metadata['RepetitionTime']
 
     # Global and segment regressors
     signals_class_labels = ["csf", "white_matter", "global_signal"]
@@ -284,19 +281,19 @@ were annotated as motion outliers.
         name='model_expansion')
 
     # Add spike regressors
-    spike_regress = pe.Node(SpikeRegressors(
-        fd_thresh=regressors_fd_th,
-        dvars_thresh=regressors_dvars_th),
-        name='spike_regressors')
+    #spike_regress = pe.Node(SpikeRegressors(
+    #    fd_thresh=regressors_fd_th,
+    #   dvars_thresh=regressors_dvars_th),
+    #   name='spike_regressors')
 
     # Generate reportlet (ROIs)
     mrg_compcor = pe.Node(niu.Merge(2), name='merge_compcor', run_without_submitting=True)
     rois_plot = pe.Node(ROIsPlot(colors=['b', 'magenta'], generate_report=True),
                         name='rois_plot', mem_gb=mem_gb)
 
-    ds_report_bold_rois = pe.Node(
+    ds_report_asl_rois = pe.Node(
         DerivativesDataSink(desc='rois', keep_dtype=True),
-        name='ds_report_bold_rois', run_without_submitting=True,
+        name='ds_report_asl_rois', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
     # Generate reportlet (CompCor)
@@ -335,37 +332,37 @@ were annotated as motion outliers.
                              ('t1w_mask', 'in_mask')]),
         (inputnode, acc_roi, [('t1w_mask', 'in_mask')]),
         (acc_tpm, acc_roi, [('out_file', 'in_tpm')]),
-        # Map ROIs to BOLD
-        (inputnode, csf_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
+        # Map ROIs to asl
+        (inputnode, csf_tfm, [('asl_mask', 'reference_image'),
+                              ('t1_asl_xform', 'transforms')]),
         (csf_roi, csf_tfm, [('roi_file', 'input_image')]),
-        (inputnode, wm_tfm, [('bold_mask', 'reference_image'),
-                             ('t1_bold_xform', 'transforms')]),
+        (inputnode, wm_tfm, [('asl_mask', 'reference_image'),
+                             ('t1_asl_xform', 'transforms')]),
         (wm_roi, wm_tfm, [('roi_file', 'input_image')]),
-        (inputnode, acc_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
+        (inputnode, acc_tfm, [('asl_mask', 'reference_image'),
+                              ('t1_asl_xform', 'transforms')]),
         (acc_roi, acc_tfm, [('roi_file', 'input_image')]),
-        (inputnode, tcc_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
+        (inputnode, tcc_tfm, [('asl_mask', 'reference_image'),
+                              ('t1_asl_xform', 'transforms')]),
         (csf_roi, tcc_tfm, [('eroded_mask', 'input_image')]),
-        # Mask ROIs with bold_mask
-        (inputnode, csf_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, wm_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, acc_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, tcc_msk, [('bold_mask', 'in_mask')]),
+        # Mask ROIs with asl_mask
+        (inputnode, csf_msk, [('asl_mask', 'in_mask')]),
+        (inputnode, wm_msk, [('asl_mask', 'in_mask')]),
+        (inputnode, acc_msk, [('asl_mask', 'in_mask')]),
+        (inputnode, tcc_msk, [('asl_mask', 'in_mask')]),
         # connect inputnode to each non-anatomical confound node
-        (inputnode, dvars, [('bold', 'in_file'),
-                            ('bold_mask', 'in_mask')]),
+        (inputnode, dvars, [('asl', 'in_file'),
+                            ('asl_mask', 'in_mask')]),
         (inputnode, fdisp, [('movpar_file', 'in_file')]),
 
         # tCompCor
-        (inputnode, tcompcor, [('bold', 'realigned_file')]),
+        (inputnode, tcompcor, [('asl', 'realigned_file')]),
         (inputnode, tcompcor, [('skip_vols', 'ignore_initial_volumes')]),
         (tcc_tfm, tcc_msk, [('output_image', 'roi_file')]),
         (tcc_msk, tcompcor, [('out', 'mask_files')]),
 
         # aCompCor
-        (inputnode, acompcor, [('bold', 'realigned_file')]),
+        (inputnode, acompcor, [('asl', 'realigned_file')]),
         (inputnode, acompcor, [('skip_vols', 'ignore_initial_volumes')]),
         (acc_tfm, acc_msk, [('output_image', 'roi_file')]),
         (acc_msk, mrg_lbl_cc, [('out', 'in1')]),
@@ -374,12 +371,12 @@ were annotated as motion outliers.
         (mrg_lbl_cc, acompcor, [('out', 'mask_files')]),
 
         # Global signals extraction (constrained by anatomy)
-        (inputnode, signals, [('bold', 'in_file')]),
+        (inputnode, signals, [('asl', 'in_file')]),
         (csf_tfm, csf_msk, [('output_image', 'roi_file')]),
         (csf_msk, mrg_lbl, [('out', 'in1')]),
         (wm_tfm, wm_msk, [('output_image', 'roi_file')]),
         (wm_msk, mrg_lbl, [('out', 'in2')]),
-        (inputnode, mrg_lbl, [('bold_mask', 'in3')]),
+        (inputnode, mrg_lbl, [('asl_mask', 'in3')]),
         (mrg_lbl, signals, [('out', 'label_files')]),
 
         # Collate computed confounds together
@@ -404,17 +401,17 @@ were annotated as motion outliers.
 
         # Expand the model with derivatives, quadratics, and spikes
         (concat, model_expand, [('confounds_file', 'confounds_file')]),
-        (model_expand, spike_regress, [('confounds_file', 'confounds_file')]),
+        #(model_expand, spike_regress, [('confounds_file', 'confounds_file')]),
 
         # Set outputs
-        (spike_regress, outputnode, [('confounds_file', 'confounds_file')]),
+        #(spike_regress, outputnode, [('confounds_file', 'confounds_file')]),
         (mrg_conf_metadata2, outputnode, [('out_dict', 'confounds_metadata')]),
-        (inputnode, rois_plot, [('bold', 'in_file'),
-                                ('bold_mask', 'in_mask')]),
+        (inputnode, rois_plot, [('asl', 'in_file'),
+                                ('asl_mask', 'in_mask')]),
         (tcompcor, mrg_compcor, [('high_variance_masks', 'in1')]),
         (acc_msk, mrg_compcor, [('out', 'in2')]),
         (mrg_compcor, rois_plot, [('out', 'in_rois')]),
-        (rois_plot, ds_report_bold_rois, [('out_report', 'in_file')]),
+        (rois_plot, ds_report_asl_rois, [('out_report', 'in_file')]),
         (tcompcor, mrg_cc_metadata, [('metadata_file', 'in1')]),
         (acompcor, mrg_cc_metadata, [('metadata_file', 'in2')]),
         (mrg_cc_metadata, compcor_plot, [('out', 'metadata_files')]),
@@ -426,7 +423,7 @@ were annotated as motion outliers.
     return workflow
 
 
-def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
+def init_carpetplot_wf(mem_gb, metadata, name="asl_carpet_wf"):
     """
     Build a workflow to generate *carpet* plots.
 
@@ -436,26 +433,26 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
     Parameters
     ----------
     mem_gb : float
-        Size of BOLD file in GB - please note that this size
+        Size of asl file in GB - please note that this size
         should be calculated after resamplings that may extend
         the FoV
     metadata : dict
-        BIDS metadata for BOLD file
+        BIDS metadata for asl file
     name : str
-        Name of workflow (default: ``bold_carpet_wf``)
+        Name of workflow (default: ``asl_carpet_wf``)
 
     Inputs
     ------
-    bold
-        BOLD image, after the prescribed corrections (STC, HMC and SDC)
+    asl
+        asl image, after the prescribed corrections (STC, HMC and SDC)
         when available.
-    bold_mask
-        BOLD series mask
+    asl_mask
+        asl series mask
     confounds_file
         TSV of all aggregated confounds
-    t1_bold_xform
+    t1_asl_xform
         Affine matrix that maps the T1w space into alignment with
-        the native BOLD space
+        the native asl space
     std2anat_xfm
         ANTs-compatible affine-and-warp transform file
 
@@ -466,8 +463,8 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
 
     """
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['bold', 'bold_mask', 'confounds_file',
-                't1_bold_xform', 'std2anat_xfm']),
+        fields=['asl', 'asl_mask', 'confounds_file',
+                't1_asl_xform', 'std2anat_xfm']),
         name='inputnode')
 
     outputnode = pe.Node(niu.IdentityInterface(
@@ -495,24 +492,24 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
             ('std_dvars', None, 'DVARS'),
             ('framewise_displacement', 'mm', 'FD')]),
         name='conf_plot', mem_gb=mem_gb)
-    ds_report_bold_conf = pe.Node(
+    ds_report_asl_conf = pe.Node(
         DerivativesDataSink(desc='carpetplot', keep_dtype=True),
-        name='ds_report_bold_conf', run_without_submitting=True,
+        name='ds_report_asl_conf', run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
 
     workflow = Workflow(name=name)
     workflow.connect([
-        (inputnode, mrg_xfms, [('t1_bold_xform', 'in1'),
+        (inputnode, mrg_xfms, [('t1_asl_xform', 'in1'),
                                ('std2anat_xfm', 'in2')]),
-        (inputnode, resample_parc, [('bold_mask', 'reference_image')]),
+        (inputnode, resample_parc, [('asl_mask', 'reference_image')]),
         (mrg_xfms, resample_parc, [('out', 'transforms')]),
         # Carpetplot
         (inputnode, conf_plot, [
-            ('bold', 'in_func'),
-            ('bold_mask', 'in_mask'),
+            ('asl', 'in_func'),
+            ('asl_mask', 'in_mask'),
             ('confounds_file', 'confounds_file')]),
         (resample_parc, conf_plot, [('output_image', 'in_segm')]),
-        (conf_plot, ds_report_bold_conf, [('out_file', 'in_file')]),
+        (conf_plot, ds_report_asl_conf, [('out_file', 'in_file')]),
         (conf_plot, outputnode, [('out_file', 'out_carpetplot')]),
     ])
     return workflow
@@ -528,11 +525,11 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
     Build a workflow that runs `ICA-AROMA`_.
 
     This workflow wraps `ICA-AROMA`_ to identify and remove motion-related
-    independent components from a BOLD time series.
+    independent components from a asl time series.
 
     The following steps are performed:
 
-    #. Remove non-steady state volumes from the bold series.
+    #. Remove non-steady state volumes from the asl series.
     #. Smooth data using FSL `susan`, with a kernel width FWHM=6.0mm.
     #. Run FSL `melodic` outside of ICA-AROMA to generate the report
     #. Run ICA-AROMA
@@ -542,7 +539,7 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
     #. Calculate ICA-AROMA-identified noise components
        (columns named ``AROMAAggrCompXX``)
 
-    Additionally, non-aggressive denoising is performed on the BOLD series
+    Additionally, non-aggressive denoising is performed on the asl series
     resampled into MNI space.
 
     There is a current discussion on whether other confounds should be extracted
@@ -556,7 +553,7 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
             :graph2use: orig
             :simple_form: yes
 
-            from fmriprep.workflows.bold.confounds import init_ica_aroma_wf
+            from fmriprep.workflows.asl.confounds import init_ica_aroma_wf
             wf = init_ica_aroma_wf(metadata={'RepetitionTime': 1.0},
                                    mem_gb=3,
                                    omp_nthreads=1)
@@ -566,22 +563,22 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
     standard_spaces : str
         Spatial normalization template used as target when that
         registration step was previously calculated with
-        :py:func:`~fmriprep.workflows.bold.registration.init_bold_reg_wf`.
+        :py:func:`~fmriprep.workflows.asl.registration.init_asl_reg_wf`.
         The template must be one of the MNI templates (fMRIPrep uses
         ``MNI152NLin2009cAsym`` by default).
     metadata : dict
-        BIDS metadata for BOLD file
+        BIDS metadata for asl file
     mem_gb : float
-        Size of BOLD file in GB
+        Size of asl file in GB
     omp_nthreads : int
         Maximum number of threads an individual process may use
     name : str
-        Name of workflow (default: ``bold_tpl_trans_wf``)
+        Name of workflow (default: ``asl_tpl_trans_wf``)
     susan_fwhm : float
         Kernel width (FWHM in mm) for the smoothing step with
         FSL ``susan`` (default: 6.0mm)
     use_fieldwarp : bool
-        Include SDC warp in single-shot transform from BOLD to MNI
+        Include SDC warp in single-shot transform from asl to MNI
     err_on_aroma_warn : bool
         Do not fail on ICA-AROMA errors
     aroma_melodic_dim: int
@@ -592,19 +589,19 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
 
     Inputs
     ------
-    itk_bold_to_t1
-        Affine transform from ``ref_bold_brain`` to T1 space (ITK format)
+    itk_asl_to_t1
+        Affine transform from ``ref_asl_brain`` to T1 space (ITK format)
     anat2std_xfm
         ANTs-compatible affine-and-warp transform file
     name_source
-        BOLD series NIfTI file
+        asl series NIfTI file
         Used to recover original information lost during processing
     skip_vols
         number of non steady state volumes
-    bold_split
-        Individual 3D BOLD volumes, not motion corrected
-    bold_mask
-        BOLD series mask in template space
+    asl_split
+        Individual 3D asl volumes, not motion corrected
+    asl_mask
+        asl series mask in template space
     hmc_xforms
         List of affine transforms aligning each volume to ``ref_image`` in ITK format
     fieldwarp
@@ -621,13 +618,13 @@ def init_ica_aroma_wf(metadata, mem_gb, omp_nthreads,
     melodic_mix
         FSL MELODIC mixing matrix
     nonaggr_denoised_file
-        BOLD series with non-aggressive ICA-AROMA denoising applied
+        asl series with non-aggressive ICA-AROMA denoising applied
 
     """
     workflow = Workflow(name=name)
     workflow.__postdesc__ = """\
 Automatic removal of motion artifacts using independent component analysis
-[ICA-AROMA, @aroma] was performed on the *preprocessed BOLD on MNI space*
+[ICA-AROMA, @aroma] was performed on the *preprocessed asl on MNI space*
 time-series after removal of non-steady state volumes and spatial smoothing
 with an isotropic, Gaussian kernel of 6mm FWHM (full-width half-maximum).
 Corresponding "non-aggresively" denoised runs were produced after such
@@ -638,8 +635,8 @@ in the corresponding confounds file.
 
     inputnode = pe.Node(niu.IdentityInterface(
         fields=[
-            'bold_std',
-            'bold_mask_std',
+            'asl_std',
+            'asl_mask_std',
             'movpar_file',
             'name_source',
             'skip_vols',
@@ -651,16 +648,16 @@ in the corresponding confounds file.
                 'nonaggr_denoised_file', 'aroma_metadata']), name='outputnode')
 
     select_std = pe.Node(KeySelect(
-        fields=['bold_mask_std', 'bold_std']),
+        fields=['asl_mask_std', 'asl_std']),
         name='select_std', run_without_submitting=True)
     select_std.inputs.key = 'MNI152NLin6Asym'
 
     rm_non_steady_state = pe.Node(niu.Function(function=_remove_volumes,
-                                               output_names=['bold_cut']),
+                                               output_names=['asl_cut']),
                                   name='rm_nonsteady')
 
     calc_median_val = pe.Node(fsl.ImageStats(op_string='-k %s -p 50'), name='calc_median_val')
-    calc_bold_mean = pe.Node(fsl.MeanImage(), name='calc_bold_mean')
+    calc_asl_mean = pe.Node(fsl.MeanImage(), name='calc_asl_mean')
 
     def _getusans_func(image, thresh):
         return [tuple([image, thresh])]
@@ -680,7 +677,7 @@ in the corresponding confounds file.
         args='-np'), name='ica_aroma')
 
     add_non_steady_state = pe.Node(niu.Function(function=_add_volumes,
-                                                output_names=['bold_add']),
+                                                output_names=['asl_add']),
                                    name='add_nonsteady')
 
     # extract the confound ICs from the results
@@ -705,35 +702,35 @@ in the corresponding confounds file.
     # connect the nodes
     workflow.connect([
         (inputnode, select_std, [('templates', 'keys'),
-                                 ('bold_std', 'bold_std'),
-                                 ('bold_mask_std', 'bold_mask_std')]),
+                                 ('asl_std', 'asl_std'),
+                                 ('asl_mask_std', 'asl_mask_std')]),
         (inputnode, ica_aroma, [('movpar_file', 'motion_parameters')]),
         (inputnode, rm_non_steady_state, [
             ('skip_vols', 'skip_vols')]),
         (select_std, rm_non_steady_state, [
-            ('bold_std', 'bold_file')]),
+            ('asl_std', 'asl_file')]),
         (select_std, calc_median_val, [
-            ('bold_mask_std', 'mask_file')]),
+            ('asl_mask_std', 'mask_file')]),
         (rm_non_steady_state, calc_median_val, [
-            ('bold_cut', 'in_file')]),
-        (rm_non_steady_state, calc_bold_mean, [
-            ('bold_cut', 'in_file')]),
-        (calc_bold_mean, getusans, [('out_file', 'image')]),
+            ('asl_cut', 'in_file')]),
+        (rm_non_steady_state, calc_asl_mean, [
+            ('asl_cut', 'in_file')]),
+        (calc_asl_mean, getusans, [('out_file', 'image')]),
         (calc_median_val, getusans, [('out_stat', 'thresh')]),
         # Connect input nodes to complete smoothing
         (rm_non_steady_state, smooth, [
-            ('bold_cut', 'in_file')]),
+            ('asl_cut', 'in_file')]),
         (getusans, smooth, [('usans', 'usans')]),
         (calc_median_val, smooth, [(('out_stat', _getbtthresh), 'brightness_threshold')]),
         # connect smooth to melodic
         (smooth, melodic, [('smoothed_file', 'in_files')]),
         (select_std, melodic, [
-            ('bold_mask_std', 'mask')]),
+            ('asl_mask_std', 'mask')]),
         # connect nodes to ICA-AROMA
         (smooth, ica_aroma, [('smoothed_file', 'in_file')]),
         (select_std, ica_aroma, [
-            ('bold_mask_std', 'report_mask'),
-            ('bold_mask_std', 'mask')]),
+            ('asl_mask_std', 'report_mask'),
+            ('asl_mask_std', 'mask')]),
         (melodic, ica_aroma, [('out_dir', 'melodic_dir')]),
         # generate tsvs from ICA-AROMA
         (ica_aroma, ica_aroma_confound_extraction, [('out_dir', 'in_directory')]),
@@ -747,51 +744,51 @@ in the corresponding confounds file.
                                                      ('melodic_mix', 'melodic_mix')]),
         (ica_aroma_metadata_fmt, outputnode, [('output', 'aroma_metadata')]),
         (ica_aroma, add_non_steady_state, [
-            ('nonaggr_denoised_file', 'bold_cut_file')]),
+            ('nonaggr_denoised_file', 'asl_cut_file')]),
         (select_std, add_non_steady_state, [
-            ('bold_std', 'bold_file')]),
+            ('asl_std', 'asl_file')]),
         (inputnode, add_non_steady_state, [
             ('skip_vols', 'skip_vols')]),
-        (add_non_steady_state, outputnode, [('bold_add', 'nonaggr_denoised_file')]),
+        (add_non_steady_state, outputnode, [('asl_add', 'nonaggr_denoised_file')]),
         (ica_aroma, ds_report_ica_aroma, [('out_report', 'in_file')]),
     ])
 
     return workflow
 
 
-def _remove_volumes(bold_file, skip_vols):
-    """Remove skip_vols from bold_file."""
+def _remove_volumes(asl_file, skip_vols):
+    """Remove skip_vols from asl_file."""
     import nibabel as nb
     from nipype.utils.filemanip import fname_presuffix
 
     if skip_vols == 0:
-        return bold_file
+        return asl_file
 
-    out = fname_presuffix(bold_file, suffix='_cut')
-    bold_img = nb.load(bold_file)
-    bold_img.__class__(bold_img.dataobj[..., skip_vols:],
-                       bold_img.affine, bold_img.header).to_filename(out)
+    out = fname_presuffix(asl_file, suffix='_cut')
+    asl_img = nb.load(asl_file)
+    asl_img.__class__(asl_img.dataobj[..., skip_vols:],
+                       asl_img.affine, asl_img.header).to_filename(out)
 
     return out
 
 
-def _add_volumes(bold_file, bold_cut_file, skip_vols):
-    """Prepend skip_vols from bold_file onto bold_cut_file."""
+def _add_volumes(asl_file, asl_cut_file, skip_vols):
+    """Prepend skip_vols from asl_file onto asl_cut_file."""
     import nibabel as nb
     import numpy as np
     from nipype.utils.filemanip import fname_presuffix
 
     if skip_vols == 0:
-        return bold_cut_file
+        return asl_cut_file
 
-    bold_img = nb.load(bold_file)
-    bold_cut_img = nb.load(bold_cut_file)
+    asl_img = nb.load(asl_file)
+    asl_cut_img = nb.load(asl_cut_file)
 
-    bold_data = np.concatenate((bold_img.dataobj[..., :skip_vols],
-                                bold_cut_img.dataobj), axis=3)
+    asl_data = np.concatenate((asl_img.dataobj[..., :skip_vols],
+                                asl_cut_img.dataobj), axis=3)
 
-    out = fname_presuffix(bold_cut_file, suffix='_addnonsteady')
-    bold_img.__class__(bold_data, bold_img.affine, bold_img.header).to_filename(out)
+    out = fname_presuffix(asl_cut_file, suffix='_addnonsteady')
+    asl_img.__class__(asl_data, asl_img.affine, asl_img.header).to_filename(out)
 
     return out
 
@@ -807,6 +804,6 @@ def _maskroi(in_mask, roi_file):
     roidata[~msk] = 0
     roi.set_data_dtype(np.uint8)
 
-    out = fname_presuffix(roi_file, suffix='_boldmsk')
+    out = fname_presuffix(roi_file, suffix='_aslmsk')
     roi.__class__(roidata, roi.affine, roi.header).to_filename(out)
     return out

@@ -12,7 +12,7 @@ from .multiecho import T2SMap
 
 
 class DerivativesDataSink(bids.DerivativesDataSink):
-    out_path_base = 'fmriprep'
+    out_path_base = 'aslprep'
 
 
 __all__ = [
@@ -31,7 +31,6 @@ __all__ = [
     'FieldToHz',
     'Phasediff2Fieldmap',
     'GatherConfounds',
-    'ICAConfounds',
     'FMRISummary',
     'T2SMap',
     'DerivativesDataSink',
