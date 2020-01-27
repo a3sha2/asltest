@@ -229,7 +229,6 @@ def init_aslprep_wf(
             debug=debug,
             dummy_scans=dummy_scans,
             echo_idx=echo_idx,
-            err_on_aroma_warn=err_on_aroma_warn,
             fmap_bspline=fmap_bspline,
             fmap_demean=fmap_demean,
             force_syn=force_syn,
@@ -576,7 +575,6 @@ It is released under the [CC0]\
 
     for bold_file in subject_data['bold']:
         func_preproc_wf = init_func_preproc_wf(
-            aroma_melodic_dim=aroma_melodic_dim,
             bold2t1w_dof=bold2t1w_dof,
             bold_file=bold_file,
             cifti_output=cifti_output,
