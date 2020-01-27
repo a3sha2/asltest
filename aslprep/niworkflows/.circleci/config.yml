@@ -1,0 +1,545 @@
+docs_deploy: &docs
+  docker:
+    - image: node:8.10.0
+  steps:
+    - checkout
+    - attach_workspace:
+        at: docs/_build
+    - run:
+        name: Disable jekyll builds
+        command: touch docs/_build/html/.nojekyll
+    - run:
+        name: Install and configure dependencies
+        command: |
+          npm install -g --silent gh-pages@2.0.1
+          git config user.email "rosswilsonblair+niworkflows-circleci@gmail.com"
+          git config user.name "ci-build"
+    - add_ssh_keys:
+        fingerprints:
+          - "6b:ba:eb:a8:cb:f7:67:eb:9b:5d:54:91:e8:b3:98:16"
+    - run:
+        name: Deploy docs to gh-pages branch
+        command: gh-pages --dotfiles --message "doc(update) [skip ci]" --dist docs/_build/html
+
+version: 2
+jobs:
+  build:
+    environment:
+      TZ: "/usr/share/zoneinfo/America/Los_Angeles"
+      SCRATCH: "/scratch"
+    docker:
+      - image: docker:18.01.0-ce-git
+    working_directory: /tmp/src/niworkflows
+    steps:
+      - run:
+          name: Install parallel gzip and python3
+          command: |
+            apk add --no-cache pigz python3
+      - restore_cache:
+          keys:
+            - docker-v1-{{ .Branch }}-{{ epoch }}
+            - docker-v1-{{ .Branch }}-
+            - docker-v1-master-
+            - docker-v1-
+          paths:
+            - /tmp/cache/docker.tar.gz
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            docker info
+            set +o pipefail
+            if [ -f /tmp/cache/docker.tar.gz ]; then
+              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
+              docker images
+            fi
+      - run:
+          name: Build Docker image
+          no_output_timeout: 60m
+          command: |
+            e=1 && for i in {1..5}; do
+              docker build \
+                --cache-from=niworkflows:py3 \
+                --rm=false \
+                -t niworkflows:py3 \
+                --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+                --build-arg VCS_REF=`git rev-parse --short HEAD` . \
+              && e=0 && break || sleep 15
+            done && [ "$e" -eq "0" ]
+      - run:
+          name: Docker save
+          no_output_timeout: 40m
+          command: |
+            mkdir -p /tmp/cache
+            docker save ubuntu:xenial-20161213 niworkflows:py3 \
+            | pigz -8 -p 3 > /tmp/cache/docker.tar.gz
+      - save_cache:
+          key: docker-v1-{{ .Branch }}-{{ epoch }}
+          paths:
+            - /tmp/cache/docker.tar.gz
+
+      # - persist_to_workspace:
+      #     root: /tmp
+      #     paths:
+      #       - cache/docker.tar.gz
+
+  get_data:
+    machine:
+      # Ubuntu 14.04 with Docker 17.10.0-ce
+      image: circleci/classic:201711-01
+    working_directory: /home/circleci/data
+    steps:
+      - restore_cache:
+          keys:
+            - data-v1-{{ epoch }}
+            - data-v1-
+      - run:
+          name: Get test data from ds000003
+          command: |
+            mkdir -p /tmp/data
+            if [[ ! -d /tmp/data/ds003_downsampled ]]; then
+              wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 0 -q \
+                -O ds003_downsampled.tar.gz "https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/57f328f6b83f6901ef94cf70"
+              tar xvzf ds003_downsampled.tar.gz -C /tmp/data/
+            else
+              echo "Dataset ds000003 was cached"
+            fi
+      - run:
+          name: Get BIDS test data stub
+          command: |
+            mkdir -p /tmp/data
+            if [[ ! -d /tmp/data/BIDS-examples-1-enh-ds054 ]]; then
+              wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 0 -q \
+                -O BIDS-examples-1-enh-ds054.zip "http://github.com/chrisfilo/BIDS-examples-1/archive/enh/ds054.zip"
+              unzip BIDS-examples-1-enh-ds054.zip -d /tmp/data/
+            else
+              echo "BIDS stub was cached"
+            fi
+      - run:
+          name: Store FreeSurfer license file
+          command: |
+            mkdir -p /tmp/fslicense
+            cd /tmp/fslicense
+            echo "cHJpbnRmICJrcnp5c3p0b2YuZ29yZ29sZXdza2lAZ21haWwuY29tXG41MTcyXG4gKkN2dW12RVYzelRmZ1xuRlM1Si8yYzFhZ2c0RVxuIiA+IGxpY2Vuc2UudHh0Cg==" | base64 -d | sh
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - data
+            - fslicense
+      - save_cache:
+         key: data-v1-{{ epoch }}
+         paths:
+            - /tmp/data
+
+  get_regression_data:
+    machine:
+      # Ubuntu 14.04 with Docker 17.10.0-ce
+      image: circleci/classic:201711-01
+    working_directory: /home/circleci/data
+    steps:
+      - restore_cache:
+          keys:
+            - regression-v2-{{ .Revision }}
+            - regression-v2-
+      - run:
+          name: Get truncated BOLD series
+          command: |
+            mkdir -p /tmp/data
+            if [[ ! -d /tmp/data/fmriprep_bold_truncated ]]; then
+              wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 0 -q \
+                -O fmriprep_bold_truncated.tar.gz "https://osf.io/286yr/download"
+              tar xvzf fmriprep_bold_truncated.tar.gz -C /tmp/data/
+            else
+              echo "Truncated BOLD series were cached"
+            fi
+      - run:
+          name: Get pre-computed masks
+          command: |
+            if [[ ! -d /tmp/data/fmriprep_bold_mask ]]; then
+              wget --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 -t 0 -q \
+                -O fmriprep_bold_mask.tar.gz "https://osf.io/s4f7b/download"
+              tar xvzf fmriprep_bold_mask.tar.gz -C /tmp/data/
+            else
+              echo "Pre-computed masks were cached"
+            fi
+      - save_cache:
+         key: regression-v2-{{ .Revision }}-{{ epoch }}
+         paths:
+            - /tmp/data
+
+  test_pytest:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/tests
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          keys:
+            - docker-v1-{{ .Branch }}-{{ epoch }}
+            - docker-v1-{{ .Branch }}-
+            - docker-v1-master-
+            - docker-v1-
+
+      - checkout:
+          path: /tmp/src/niworkflows
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            docker info
+            set +o pipefail
+            if [ -f /tmp/cache/docker.tar.gz ]; then
+              sudo apt update && sudo apt -y install pigz
+              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
+              docker images
+            fi
+      - run:
+          name: Set PR number
+          command: |
+            echo 'export CIRCLE_PR_NUMBER="${CIRCLE_PR_NUMBER:-${CIRCLE_PULL_REQUEST##*/}}"' >> $BASH_ENV
+            source $BASH_ENV
+            echo $CIRCLE_PR_NUMBER
+      - run:
+          name: Get codecov
+          command: python -m pip install codecov
+      - run:
+          name: Run unit tests
+          no_output_timeout: 2h
+          command: |
+            mkdir -p $PWD/artifacts $PWD/summaries
+            sudo setfacl -d -m group:ubuntu:rwx $PWD
+            sudo setfacl -m group:ubuntu:rwx $PWD
+            docker run -u $( id -u ) -it --rm=false \
+              -e TEST_DATA_HOME=/data -v /tmp/data:/data \
+              -v ${PWD}:/tmp niworkflows:py3 \
+              pytest --junit-xml=/tmp/summaries/pytest.xml \
+                     --cov niworkflows --cov-report xml:/tmp/summaries/unittests.xml \
+                     --ignore=/src/niworkflows/niworkflows/tests/ \
+                     --ignore=/src/niworkflows/niworkflows/func/tests/ \
+                     /src/niworkflows/niworkflows
+
+      - run:
+          name: Submit unit test coverage
+          command: |
+            python -m codecov --file summaries/unittests.xml \
+                --root /tmp/src/niworkflows \
+                --flags unittests -e CIRCLE_JOB
+
+      - run:
+          name: Run reportlet tests
+          no_output_timeout: 2h
+          command: |
+            docker run -u $( id -u ) -it --rm=false \
+              -e SAVE_CIRCLE_ARTIFACTS="/tmp/artifacts/" \
+              -e TEST_DATA_HOME=/data -v /tmp/data:/data \
+              -v /tmp/fslicense/license.txt:/opt/freesurfer/license.txt:ro \
+              -v ${PWD}:/tmp niworkflows:py3 \
+              pytest -n auto --junit-xml=/tmp/summaries/reportlets.xml \
+                     --cov niworkflows --cov-report xml:/tmp/summaries/reportlets.xml \
+                     /src/niworkflows/niworkflows/tests/
+      - run:
+          name: Submit reportlet test coverage
+          command: |
+            python -m codecov --file summaries/reportlets.xml --root /tmp/src/niworkflows \
+                --flags reportlettests -e CIRCLE_JOB
+
+      - run:
+          name: Clean up tests directory
+          command: |
+            rm -rf /tmp/tests/pytest-of-root
+
+      - store_artifacts:
+          path: /tmp/tests/artifacts
+
+      - store_test_results:
+          path: /tmp/tests/summaries/
+
+  test_masks:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/masks
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          keys:
+            - docker-v1-{{ .Branch }}-{{ epoch }}
+            - docker-v1-{{ .Branch }}-
+            - docker-v1-master-
+            - docker-v1-
+      - restore_cache:
+          keys:
+            - regression-v2-{{ .Revision }}
+
+      - checkout:
+          path: /tmp/src/niworkflows
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            docker info
+            set +o pipefail
+            if [ -f /tmp/cache/docker.tar.gz ]; then
+              sudo apt update && sudo apt -y install pigz
+              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
+              docker images
+            fi
+      - run:
+          name: Set PR number
+          command: |
+            echo 'export CIRCLE_PR_NUMBER="${CIRCLE_PR_NUMBER:-${CIRCLE_PULL_REQUEST##*/}}"' >> $BASH_ENV
+            source $BASH_ENV
+            echo $CIRCLE_PR_NUMBER
+      - run:
+          name: Get codecov
+          command: python -m pip install codecov
+
+      - run:
+          name: Run regression tests on EPI masks
+          no_output_timeout: 2h
+          command: |
+            mkdir -p /tmp/masks/reports && \
+            docker run -ti --rm=false \
+              -v /tmp/data:/tmp/data -v /tmp/masks:/tmp/masks \
+              -e FMRIPREP_REGRESSION_SOURCE=/tmp/data/fmriprep_bold_truncated \
+              -e FMRIPREP_REGRESSION_TARGETS=/tmp/data/fmriprep_bold_mask \
+              -e FMRIPREP_REGRESSION_REPORTS=/tmp/masks/reports \
+              niworkflows:py3 \
+              pytest --junit-xml=/tmp/masks/regression.xml \
+                     --cov niworkflows --cov-report xml:/tmp/masks/coverage.xml \
+                     /src/niworkflows/niworkflows/func/tests/
+
+      - run:
+          name: Submit masks test coverage
+          command: |
+            python -m codecov --file /tmp/masks/coverage.xml --root /tmp/src/niworkflows \
+                --flags masks -e CIRCLE_JOB
+
+      - run:
+          name: Package new masks
+          when: always
+          no_output_timeout: 10m
+          working_directory: /tmp/data
+          command: |
+            tar cfz /tmp/masks/fmriprep_bold_mask.tar.gz fmriprep_bold_mask/*/*.nii.gz
+
+      - store_artifacts:
+          path: /tmp/masks
+
+      - store_test_results:
+          path: /tmp/masks
+
+  test_package:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/src/niworkflows
+    steps:
+      - checkout
+      - run: pyenv local 3.5.2
+      - run:
+          name: Install build depends
+          command: python3 -m pip install "setuptools>=30.4.0" "pip>=10.0.1" "twine<2.0" docutils
+      - run:
+          name: Build and check
+          command: |
+            python3 setup.py sdist
+            python3 -m twine check dist/*
+      - run:
+          name: Validate version
+          command: |
+            THISVERSION=$( python3 get_version.py )
+            python3 -m pip install dist/*.tar.gz
+            mkdir empty
+            cd empty
+            INSTALLED=$( python3 -c 'import niworkflows; print(niworkflows.__version__)' )
+            test "${CIRCLE_TAG:-$THISVERSION}" == "$INSTALLED"
+
+  deploy:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/src/niworkflows
+    steps:
+      - checkout
+      - run: pyenv local 3.5.2
+      - run:
+          name: Install build depends
+          command: python3 -m pip install "setuptools>=30.4.0" "pip>=10.0.1" "twine<2.0" docutils
+      - run:
+          name: Build and check
+          command: |
+            python3 setup.py check -r -s
+            python3 setup.py sdist
+            python3 -m twine check dist/*
+      - run:
+          name: Validate version
+          command: |
+            THISVERSION=$( python3 get_version.py )
+            python3 -m pip install dist/*.tar.gz
+            mkdir empty
+            cd empty
+            INSTALLED=$( python3 -c 'import niworkflows; print(niworkflows.__version__)' )
+            test "${CIRCLE_TAG:-$THISVERSION}" == "$INSTALLED"
+      - run:
+          name: Upload to PyPi
+          command: |
+            python3 -m twine upload dist/*
+
+  build_docs:
+    docker:
+      - image: python:3.7.4
+    environment:
+      - FSLOUTPUTTYPE: NIFTI
+      - SUBJECTS_DIR: /tmp/subjects
+    steps:
+      - restore_cache:
+          keys:
+            - docs-v1-{{ .Branch }}-{{ .Revision }}
+            - docs-v1-{{ .Branch }}-
+            - docs-v1-master
+            - docs-v1-
+          paths:
+            - ./docs/_build/_html
+      - checkout
+      - run:
+          name: Create subjects folder
+          command: mkdir -p $SUBJECTS_DIR
+      - run:
+          name: Install Graphviz
+          command: apt update && apt -y install graphviz
+      - run:
+          name: Install deps
+          command: pip install --no-cache-dir -r docs/requirements.txt
+      - run:
+          name: Build only this commit
+          command: make -C docs SPHINXOPTS="-W" BUILDDIR="_build/no_version_html" html
+      - store_artifacts:
+          path: ./docs/_build/no_version_html
+      - run:
+          name: Generate Versioned Docs
+          command: |
+            set +e
+            force_versioned="$( git log --format=oneline -n 1 $CIRCLE_SHA1 | grep -i -E '\[docs?[ _]?versions?\]' )"
+            set -e
+            if [[ "x${CIRCLE_TAG}" = "x" && "${CIRCLE_BRANCH}" != "master" && "x${force_versioned}" = "x" ]]; then
+              echo "Not a tag or master branch - skipping versioned docs."
+              circleci step halt
+            else
+              make -f ./docs/Makefile versioned CURBRANCH=${CIRCLE_TAG:-$CIRCLE_BRANCH}
+            fi
+      - save_cache:
+          key: docs-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ./docs/_build/_html
+      - persist_to_workspace:
+          root: docs/_build
+          paths: html
+      - store_artifacts:
+          path: ./docs/_build/html
+
+  deploy_docs_tag:
+    <<: *docs
+
+  deploy_docs_master:
+    <<: *docs
+
+
+workflows:
+  version: 2
+  build_test_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - get_data:
+          filters:
+            branches:
+              ignore:
+                - /masks?\/.*/
+            tags:
+              only: /.*/
+
+      - get_regression_data:
+          filters:
+            branches:
+              only:
+                - /master/
+                - /masks?\/.*/
+            tags:
+              ignore: /.*/
+
+      - test_package:
+          filters:
+            branches:
+              ignore:
+                - /masks?\/.*/
+            tags:
+              only: /.*/
+
+      - test_pytest:
+          requires:
+            - build
+            - get_data
+          filters:
+            branches:
+              ignore:
+                - /docs?\/.*/
+                - /masks?\/.*/
+            tags:
+              only: /.*/
+
+      - test_masks:
+          requires:
+            - build
+            - get_regression_data
+          filters:
+            branches:
+              only:
+                - /master/
+                - /masks?\/.*/
+            tags:
+              ignore: /.*/
+
+      - deploy:
+          requires:
+            - test_pytest
+            - test_package
+            - build_docs
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+
+      - build_docs:
+          filters:
+            branches:
+              ignore:
+                - /tests?\/.*/
+                - /ds005\/.*/
+                - /ds054\/.*/
+            tags:
+              only: /.*/
+
+      - deploy_docs_master:
+          requires:
+            - test_pytest
+            - test_package
+            - build_docs
+          filters:
+            branches:
+              only: /master/
+            tags:
+              ignore: /.*/
+
+      - deploy_docs_tag:
+          requires:
+            - deploy
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
