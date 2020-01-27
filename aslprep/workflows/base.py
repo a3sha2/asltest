@@ -31,18 +31,16 @@ from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from ..interfaces import SubjectSummary, AboutSummary, DerivativesDataSink
 from ..__about__ import __version__
-from .bold import init_func_preproc_wf
+from .bold import init_asl_preproc_wf
 
 
-def init_fmriprep_wf(
+def init_aslprep_wf(
     anat_only,
-    aroma_melodic_dim,
-    bold2t1w_dof,
+    asl2t1w_dof,
     cifti_output,
     debug,
     dummy_scans,
     echo_idx,
-    err_on_aroma_warn,
     fmap_bspline,
     fmap_demean,
     force_syn,
@@ -57,22 +55,18 @@ def init_fmriprep_wf(
     omp_nthreads,
     output_dir,
     output_spaces,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
     run_uuid,
     skull_strip_fixed_seed,
     skull_strip_template,
     subject_list,
     t2s_coreg,
     task_id,
-    use_aroma,
     use_bbr,
     use_syn,
     work_dir,
 ):
     """
-    Build *fMRIPrep*'s pipeline.
+    Build *ASLPrep*'s pipeline.
 
     This workflow organizes the execution of FMRIPREP, with a sub-workflow for
     each subject.
@@ -212,8 +206,8 @@ def init_fmriprep_wf(
         Directory in which to store workflow execution state and temporary files
 
     """
-    fmriprep_wf = Workflow(name='fmriprep_wf')
-    fmriprep_wf.base_dir = work_dir
+    aslprep_wf = Workflow(name='aslprep_wf')
+    aslprep_wf.base_dir = work_dir
 
     if freesurfer:
         fsdir = pe.Node(
@@ -230,8 +224,7 @@ def init_fmriprep_wf(
     for subject_id in subject_list:
         single_subject_wf = init_single_subject_wf(
             anat_only=anat_only,
-            aroma_melodic_dim=aroma_melodic_dim,
-            bold2t1w_dof=bold2t1w_dof,
+            asl2t1w_dof=asl2t1w_dof,
             cifti_output=cifti_output,
             debug=debug,
             dummy_scans=dummy_scans,
@@ -251,16 +244,12 @@ def init_fmriprep_wf(
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             output_spaces=output_spaces,
-            regressors_all_comps=regressors_all_comps,
-            regressors_dvars_th=regressors_dvars_th,
-            regressors_fd_th=regressors_fd_th,
             reportlets_dir=reportlets_dir,
             skull_strip_fixed_seed=skull_strip_fixed_seed,
             skull_strip_template=skull_strip_template,
             subject_id=subject_id,
             t2s_coreg=t2s_coreg,
             task_id=task_id,
-            use_aroma=use_aroma,
             use_bbr=use_bbr,
             use_syn=use_syn,
         )
@@ -271,23 +260,21 @@ def init_fmriprep_wf(
         for node in single_subject_wf._get_all_nodes():
             node.config = deepcopy(single_subject_wf.config)
         if freesurfer:
-            fmriprep_wf.connect(fsdir, 'subjects_dir',
+            aslprep_wf.connect(fsdir, 'subjects_dir',
                                 single_subject_wf, 'inputnode.subjects_dir')
         else:
-            fmriprep_wf.add_nodes([single_subject_wf])
+            aslprep_wf.add_nodes([single_subject_wf])
 
-    return fmriprep_wf
+    return aslprep_wf
 
 
 def init_single_subject_wf(
     anat_only,
-    aroma_melodic_dim,
-    bold2t1w_dof,
+    asl2t1w_dof,
     cifti_output,
     debug,
     dummy_scans,
     echo_idx,
-    err_on_aroma_warn,
     fmap_bspline,
     fmap_demean,
     force_syn,
@@ -303,15 +290,11 @@ def init_single_subject_wf(
     output_dir,
     output_spaces,
     reportlets_dir,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
     skull_strip_fixed_seed,
     skull_strip_template,
     subject_id,
     t2s_coreg,
     task_id,
-    use_aroma,
     use_bbr,
     use_syn,
 ):
@@ -467,15 +450,15 @@ def init_single_subject_wf(
         # for documentation purposes
         subject_data = {
             't1w': ['/completely/made/up/path/sub-01_T1w.nii.gz'],
-            'bold': ['/completely/made/up/path/sub-01_task-nback_bold.nii.gz']
+            'asl': ['/completely/made/up/path/sub-01_task-nback_bold.nii.gz']
         }
     else:
         subject_data = collect_data(layout, subject_id, task_id, echo_idx)[0]
 
     # Make sure we always go through these two checks
-    if not anat_only and subject_data['bold'] == []:
-        raise Exception("No BOLD images found for participant {} and task {}. "
-                        "All workflows require BOLD images.".format(
+    if not anat_only and subject_data['asl'] == []:
+        raise Exception("No ASL images found for participant {} and task {}. "
+                        "All workflows require ASL images.".format(
                             subject_id, task_id if task_id else '<all>'))
 
     if not subject_data['t1w']:
@@ -490,7 +473,7 @@ performed using *fMRIPrep* {fmriprep_ver}
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
-""".format(fmriprep_ver=__version__, nipype_ver=nipype_ver)
+""".format(aslprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
 Many internal operations of *fMRIPrep* use

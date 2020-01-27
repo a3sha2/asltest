@@ -435,7 +435,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     cifti_spaces = ('fsLR',) if 'fsLR' in output_spaces else None
     cifti_output = cifti_output and cifti_spaces
     fslr_density = output_spaces.get('fsLR', {}).get('den')
-    asl_derivatives_wf = init_asl_derivatives_wf(
+    asl_derivatives_wf = init_bold_derivatives_wf(
         bids_root=layout.root,
         cifti_output=cifti_output,
         freesurfer=freesurfer,
