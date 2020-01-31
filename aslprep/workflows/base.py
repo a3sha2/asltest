@@ -568,19 +568,18 @@ It is released under the [CC0]\
     # Overwrite ``out_path_base`` of smriprep's DataSinks
     for node in workflow.list_node_names():
         if node.split('.')[-1].startswith('ds_'):
-            workflow.get_node(node).interface.out_path_base = 'fmriprep'
+            workflow.get_node(node).interface.out_path_base = 'aslprep'
 
     if anat_only:
         return workflow
 
-    for bold_file in subject_data['bold']:
-        func_preproc_wf = init_func_preproc_wf(
-            bold2t1w_dof=bold2t1w_dof,
-            bold_file=bold_file,
+    for asl_file in subject_data['asl']:
+        asl_preproc_wf = init_asl_preproc_wf(
+            asl2t1w_dof=asl2t1w_dof,
+            asl_file=asl_file,
             cifti_output=cifti_output,
             debug=debug,
             dummy_scans=dummy_scans,
-            err_on_aroma_warn=err_on_aroma_warn,
             fmap_bspline=fmap_bspline,
             fmap_demean=fmap_demean,
             force_syn=force_syn,
@@ -589,22 +588,18 @@ It is released under the [CC0]\
             layout=layout,
             low_mem=low_mem,
             medial_surface_nan=medial_surface_nan,
-            num_bold=len(subject_data['bold']),
+            num_asl=len(subject_data['asl']),
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             output_spaces=output_spaces,
             reportlets_dir=reportlets_dir,
-            regressors_all_comps=regressors_all_comps,
-            regressors_fd_th=regressors_fd_th,
-            regressors_dvars_th=regressors_dvars_th,
             t2s_coreg=t2s_coreg,
-            use_aroma=use_aroma,
             use_bbr=use_bbr,
-            use_syn=use_syn,
+            use_syn=use_syn
         )
 
         workflow.connect([
-            (anat_preproc_wf, func_preproc_wf,
+            (anat_preproc_wf, asl_preproc_wf,
              [(('outputnode.t1w_preproc', _pop), 'inputnode.t1w_preproc'),
               ('outputnode.t1w_brain', 'inputnode.t1w_brain'),
               ('outputnode.t1w_mask', 'inputnode.t1w_mask'),

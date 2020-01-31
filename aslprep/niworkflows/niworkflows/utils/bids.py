@@ -160,6 +160,9 @@ def collect_data(bids_dir, participant_label, task=None, echo=None,
         't2w': {'datatype': 'anat', 'suffix': 'T2w'},
         't1w': {'datatype': 'anat', 'suffix': 'T1w'},
         'roi': {'datatype': 'anat', 'suffix': 'roi'},
+        'asl':{'datatype':'asl','suffix:':'asl'},
+        'm0':{'datatype':'asl','suffix':'M0Scan'},
+        'deltam':{'datatype':'asl','suffix':'DeltaM'}
     }
 
     if task:
