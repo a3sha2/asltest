@@ -12,7 +12,7 @@ import os
 import glob
 
 CMDLINE = """\
-{fmriprep_cmd} {bids_dir}/{dataset_dir} {output_dir}/{dataset_dir} participant \
+{aslprep_cmd} {bids_dir}/{dataset_dir} {output_dir}/{dataset_dir} participant \
 -w {dataset_dir}/work --participant_label {participant_label} \
 """
 
@@ -76,13 +76,13 @@ def main():
     if opts.tasks_filter:
         cmdline += '-t %s' % ' '.join(opts.tasks_filter)
 
-    fmriprep_cmd = 'fmriprep'
+    aslprep_cmd = 'aslprep'
     if opts.cmd_call is None:
         singularity_dir = os.getenv('SINGULARITY_BIN')
         singularity_img = sorted(
             glob.glob(os.path.join(singularity_dir, 'poldracklab_fmriprep_*')))
         if singularity_img:
-            fmriprep_cmd = 'singularity run %s' % singularity_img[-1]
+            aslprep_cmd = 'singularity run %s' % singularity_img[-1]
 
     task_cmds = []
 
@@ -96,7 +96,7 @@ def main():
     for dset, sublist in sampledict.items():
         for sub in sublist:
             cmd = cmdline.format(
-                fmriprep_cmd=fmriprep_cmd,
+                aslprep_cmd=aslprep_cmd,
                 bids_dir=opts.openfmri_dir,
                 dataset_dir=dset,
                 output_dir=opts.output_dir,
