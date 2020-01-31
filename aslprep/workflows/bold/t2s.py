@@ -11,7 +11,7 @@ from nipype import logging
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
 from ...interfaces import T2SMap
 from .util import init_skullstrip_bold_wf

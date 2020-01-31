@@ -14,19 +14,19 @@ from nipype.interfaces import utility as niu, freesurfer as fs
 from nipype.interfaces.fsl import Split as FSLSplit
 import nipype.interfaces.workbench as wb
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
-from niworkflows.interfaces.freesurfer import (
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
+from ...niworkflows.niworkflows.interfaces.freesurfer import (
     MedialNaNs,
     # See https://github.com/poldracklab/fmriprep/issues/768
     PatchedConcatenateLTA as ConcatenateLTA,
     PatchedLTAConvert as LTAConvert
 )
-from niworkflows.interfaces.itk import MultiApplyTransforms
-from niworkflows.interfaces.utils import GenerateSamplingReference
-from niworkflows.interfaces.utility import KeySelect
-from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
-from niworkflows.interfaces.nilearn import Merge
+from ...niworkflows.niworkflows.interfaces.itk import MultiApplyTransforms
+from ...niworkflows.niworkflows.interfaces.utils import GenerateSamplingReference
+from ...niworkflows.niworkflows.interfaces.utility import KeySelect
+from ...niworkflows.niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
+from ...niworkflows.niworkflows.interfaces.nilearn import Merge
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces import DerivativesDataSink
@@ -681,7 +681,7 @@ def init_asl_preproc_report_wf(mem_gb, reportlets_dir, name='asl_preproc_report_
 
     """
     from nipype.algorithms.confounds import TSNR
-    from niworkflows.interfaces import SimpleBeforeAfter
+    from  ...niworkflows.niworkflows.interfaces import SimpleBeforeAfter
 
     workflow = Workflow(name=name)
 
@@ -713,7 +713,7 @@ def init_asl_preproc_report_wf(mem_gb, reportlets_dir, name='asl_preproc_report_
 
 
 def _select_template(template, template_specs):
-    from niworkflows.utils.misc import get_template_specs
+    from ...niworkflows.niworkflows.utils.misc import get_template_specs
     specs = template_specs[template]
     specs['suffix'] = specs.get('suffix', 'T1w')
     return get_template_specs(template, template_spec=specs)[0]

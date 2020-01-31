@@ -4,7 +4,7 @@
 import os
 from pathlib import Path
 import re
-from niworkflows.utils.misc import read_crashfile
+from ..niworkflows.niworkflows.utils.misc import read_crashfile
 import sentry_sdk
 
 CHUNK_SIZE = 16384

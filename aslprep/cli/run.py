@@ -372,7 +372,8 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
     else:
         if opts.run_reconall:
             from templateflow import api
-            from niworkflows.utils.misc import _copy_any
+            from ..niworkflows.niworkflows.utils.misc 
+            from ..niworkflows.niworkflows.utils.misc import _copy_any
             dseg_tsv = str(api.get('fsaverage', suffix='dseg', extension=['.tsv']))
             _copy_any(dseg_tsv,
                       str(output_dir / 'aslprep' / 'desc-aseg_dseg.tsv'))
@@ -384,7 +385,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
             sentry_sdk.capture_message('ASLPrep finished without errors',
                                        level='info')
     finally:
-        from niworkflows.reports import generate_reports
+        from ..niworkflows.niworkflows.reports import generate_reports
         from subprocess import check_call, CalledProcessError, TimeoutExpired
         from pkg_resources import resource_filename as pkgrf
         from shutil import copyfile
@@ -458,8 +459,8 @@ def build_workflow(opts, retval):
     from bids import BIDSLayout
 
     from nipype import logging as nlogging, config as ncfg
-    from niworkflows.utils.bids import collect_participants
-    from niworkflows.reports import generate_reports
+    from ..niworkflows.niworkflows.utils.bids import collect_participants
+    from ..niworkflows.niworkflows.reports import generate_reports
     from ..__about__ import __version__
     from ..workflows.base import init_aslprep_wf
 

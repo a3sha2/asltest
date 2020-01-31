@@ -19,7 +19,7 @@ def get_parser():
 
 def main():
     """Entry point"""
-    from fmriprep.workflows.bold.util import init_bold_reference_wf
+    from aslprep.workflows.bold.util import init_bold_reference_wf
     opts = get_parser().parse_args()
 
     wf = init_bold_reference_wf(1, name=hash_infile(opts.input_file), gen_report=True)

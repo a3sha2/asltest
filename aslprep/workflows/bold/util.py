@@ -9,7 +9,7 @@ Utility workflows
 .. autofunction:: init_skullstrip_bold_wf
 
 """
-from niworkflows.func.util import (
+from ...niworkflows.niworkflows.func.util import (
     init_bold_reference_wf,
     init_enhance_and_skullstrip_bold_wf,
     init_skullstrip_bold_wf

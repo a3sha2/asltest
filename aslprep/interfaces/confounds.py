@@ -20,7 +20,7 @@ from nipype.interfaces.base import (
     traits, TraitedSpec, BaseInterfaceInputSpec, File, Directory, isdefined,
     SimpleInterface
 )
-from niworkflows.viz.plots import fMRIPlot
+from ..niworkflows.niworkflows.viz.plots import fMRIPlot
 
 LOGGER = logging.getLogger('nipype.interface')
 

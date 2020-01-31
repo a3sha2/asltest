@@ -19,14 +19,14 @@ from copy import deepcopy
 from nipype import __version__ as nipype_ver
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
-from niworkflows.interfaces.nilearn import NILEARN_VERSION
+from ..niworkflows.niworkflows.interfaces.nilearn import NILEARN_VERSION
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.bids import (
+from ..niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ..niworkflows.niworkflows.interfaces.bids import (
     BIDSInfo, BIDSDataGrabber, BIDSFreeSurferDir
 )
-from niworkflows.utils.bids import collect_data
-from niworkflows.utils.misc import fix_multi_T1w_source_name
+from ..niworkflows.niworkflows.utils.bids import collect_data
+from ..niworkflows.niworkflows.utils.misc import fix_multi_T1w_source_name
 from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from ..interfaces import SubjectSummary, AboutSummary, DerivativesDataSink

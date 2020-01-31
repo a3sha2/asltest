@@ -17,7 +17,7 @@ from nipype.interfaces.base import (
     File, Directory, InputMultiObject, Str, isdefined,
     SimpleInterface)
 from nipype.interfaces import freesurfer as fs
-from niworkflows.utils.bids import BIDS_NAME
+from ..niworkflows.niworkflows.utils.bids import BIDS_NAME
 
 
 SUBJECT_TEMPLATE = """\

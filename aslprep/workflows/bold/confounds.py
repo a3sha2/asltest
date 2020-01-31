@@ -14,21 +14,21 @@ from nipype.interfaces import utility as niu, fsl
 from nipype.algorithms import confounds as nac
 
 from templateflow.api import get as get_template
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.confounds import ExpandModel, SpikeRegressors
-from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
-from niworkflows.interfaces.images import SignalExtraction
-from niworkflows.interfaces.masks import ROIsPlot
-from niworkflows.interfaces.utility import KeySelect
-from niworkflows.interfaces.patches import (
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.interfaces.confounds import ExpandModel, SpikeRegressors
+from ...niworkflows.niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
+from ...niworkflows.niworkflows.interfaces.images import SignalExtraction
+from ...niworkflows.niworkflows.interfaces.masks import ROIsPlot
+from ...niworkflows.niworkflows.interfaces.utility import KeySelect
+from ...niworkflows.niworkflows.interfaces.patches import (
     RobustACompCor as ACompCor,
     RobustTCompCor as TCompCor,
 )
-from niworkflows.interfaces.plotting import (
+from ...niworkflows.niworkflows.interfaces.plotting import (
     CompCorVariancePlot, ConfoundsCorrelationPlot
 )
-from niworkflows.interfaces.segmentation import ICA_AROMARPT
-from niworkflows.interfaces.utils import (
+from ...niworkflows.niworkflows.interfaces.segmentation import ICA_AROMARPT
+from ...niworkflows.niworkflows.interfaces.utils import (
     TPM2ROI, AddTPMs, AddTSVHeader, TSV2JSON, DictMerge
 )
 

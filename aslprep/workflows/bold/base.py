@@ -19,9 +19,9 @@ from nipype.interfaces.fsl import Split as FSLSplit
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.utility import KeySelect
-from niworkflows.interfaces.utils import DictMerge
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.interfaces.utility import KeySelect
+from ...niworkflows.niworkflows.interfaces.utils import DictMerge
 
 
 from ...config import DEFAULT_MEMORY_MIN_GB
@@ -738,7 +738,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     # Map final asl mask into T1w space (if required)
     if 'T1w' in output_spaces or 'anat' in output_spaces:
-        from niworkflows.interfaces.fixes import (
+        from ...niworkflows.niworkflows.interfaces.fixes import (
             FixHeaderApplyTransforms as ApplyTransforms
         )
 
@@ -881,7 +881,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
 
         if cifti_output:
-            from niworkflows.interfaces.cifti import GenerateCifti
+            from ...niworkflows.niworkflows.interfaces.cifti import GenerateCifti
             asl_surf_wf.__desc__ += """\
 *Grayordinates* files [@hcppipelines], which combine surface-sampled
 data and volume-sampled data, were also generated.
@@ -947,7 +947,7 @@ data and volume-sampled data, were also generated.
 
 
 def _get_series_len(asl_fname):
-    from niworkflows.interfaces.registration import _get_vols_to_discard
+    from ...niworkflows.niworkflows.interfaces.registration import _get_vols_to_discard
     img = nb.load(asl_fname)
     if len(img.shape) < 4:
         return 1
@@ -992,7 +992,7 @@ def _get_wf_name(asl_fname):
 
 def _to_join(in_file, join_file):
     """Join two tsv files if the join_file is not ``None``."""
-    from niworkflows.interfaces.utils import JoinTSVColumns
+    from ...niworkflows.niworkflows.interfaces.utils import JoinTSVColumns
     if join_file is None:
         return in_file
     res = JoinTSVColumns(in_file=in_file, join_file=join_file).run()

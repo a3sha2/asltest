@@ -10,8 +10,8 @@ Slice-Timing Correction (STC) of asl images
 from nipype import logging
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, afni
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.utils import CopyXForm
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.interfaces.utils import CopyXForm
 
 
 LOGGER = logging.getLogger('nipype.workflow')

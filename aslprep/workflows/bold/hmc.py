@@ -11,9 +11,9 @@ Head-Motion Estimation and Correction (HMC) of asl images
 
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, fsl
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces import NormalizeMotionParams
-from niworkflows.interfaces.itk import MCFLIRT2ITK
+from ...niworkflows.niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.niworkflows.interfaces import NormalizeMotionParams
+from ...niworkflows.niworkflows.interfaces.itk import MCFLIRT2ITK
 from ...config import DEFAULT_MEMORY_MIN_GB
 
 
