@@ -63,7 +63,7 @@ def sentry_setup(opts, exec_env):
     elif int(os.getenv('FMRIPREP_DEV', '0')) or ('+' in __version__):
         environment = "dev"
 
-    sentry_sdk.init("https://d5a16b0c38d84d1584dfc93b9fb1ade6@sentry.io/1137693",
+    sentry_sdk.init("https://d5a16b0c38d84d1584dfc93b9fb1ade6@sentry.io/113769888888",
                     release=release,
                     environment=environment,
                     before_send=before_send)
