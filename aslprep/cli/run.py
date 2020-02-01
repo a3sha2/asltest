@@ -281,11 +281,11 @@ def main():
    #         if os.getenv('DOCKER_VERSION_8395080871'):
    #             exec_env = 'fmriprep-docker'
 
-    sentry_sdk = None
-    if not opts.notrack:
-        import sentry_sdk
-        from ..utils.sentry import sentry_setup
-        sentry_setup(opts, exec_env)
+    #sentry_sdk = None
+    #if not opts.notrack:
+        #import sentry_sdk
+        #from ..utils.sentry import sentry_setup
+        #sentry_setup(opts, exec_env)
 
     # Validate inputs
     if not opts.skip_bids_validation:
