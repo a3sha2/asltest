@@ -159,6 +159,11 @@ https://aslprep.readthedocs.io/en/%s/spaces.html""" % (
 
     # Confounds options
     g_confounds = parser.add_argument_group('Specific options for estimating confounds')
+    g_confounds.add_argument(
+        '--return-all-components', required=False, action='store_true', default=False,
+        help='Include all components estimated in CompCor decomposition in the confounds '
+             'file instead of only the components sufficient to explain 50 percent of '
+             'BOLD variance in each CompCor mask')
 
     #  ANTs options
     g_ants = parser.add_argument_group('Specific options for ANTs registrations')
@@ -276,11 +281,11 @@ def main():
    #         if os.getenv('DOCKER_VERSION_8395080871'):
    #             exec_env = 'fmriprep-docker'
 
-    sentry_sdk = None
-    if not opts.notrack:
-        import sentry_sdk
-        from ..utils.sentry import sentry_setup
-        sentry_setup(opts, exec_env)
+    #sentry_sdk = None
+    #if not opts.notrack:
+        #import sentry_sdk
+        #from ..utils.sentry import sentry_setup
+        #sentry_setup(opts, exec_env)
 
     # Validate inputs
     if not opts.skip_bids_validation:
@@ -341,7 +346,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
     # Check workflow for missing commands
     missing = check_deps(aslprep_wf)
     if missing:
-        print("Cannot run fMRIPrep. Missing dependencies:", file=sys.stderr)
+        print("Cannot run ASLPrep. Missing dependencies:", file=sys.stderr)
         for iface, cmd in missing:
             print("\t{} (Interface: {})".format(cmd, iface))
         sys.exit(2)
@@ -371,8 +376,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
         raise
     else:
         if opts.run_reconall:
-            from templateflow import api
-            from ..niworkflows.niworkflows.utils.misc 
+            from templateflow import api 
             from ..niworkflows.niworkflows.utils.misc import _copy_any
             dseg_tsv = str(api.get('fsaverage', suffix='dseg', extension=['.tsv']))
             _copy_any(dseg_tsv,
@@ -591,8 +595,8 @@ def build_workflow(opts, retval):
             retval['run_uuid'] = run_uuid
         retval['return_code'] = generate_reports(
             subject_list, output_dir, work_dir, run_uuid,
-            config=pkgrf('fmriprep', 'data/reports-spec.yml'),
-            packagename='fmriprep')
+            config=pkgrf('aslprep', 'data/reports-spec.yml'),
+            packagename='aslprep')
         return retval
 
     # Build main workflow
