@@ -24,7 +24,7 @@ def get_keywords():
     # each be defined on a line of their own. _version.py will just call
     # get_keywords().
     git_refnames = " (HEAD -> master)"
-    git_full = "3621181c980a76769bfbb7545f74cf293f6c69c3"
+    git_full = "3621181c980a76769bfbb7545f74cf293f6c69c3" # how to get i
     git_date = "2020-01-24 14:08:11 -0500"
     keywords = {"refnames": git_refnames, "full": git_full, "date": git_date}
     return keywords
@@ -43,7 +43,7 @@ def get_config():
     cfg.style = "pep440"
     cfg.tag_prefix = ""
     cfg.parentdir_prefix = ""
-    cfg.versionfile_source = "fmriprep/_version.py"
+    cfg.versionfile_source = "aslprep/_version.py"
     cfg.verbose = False
     return cfg
 
