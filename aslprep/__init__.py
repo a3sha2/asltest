@@ -7,6 +7,8 @@ This pipeline is developed by the Poldrack lab at Stanford University
 (https://poldracklab.stanford.edu/) for use at
 the Center for Reproducible Neuroscience (http://reproducibility.stanford.edu/),
 as well as for open-source software distribution.
+TODO 
+add recommendation and profileration
 """
 
 from .__about__ import (  # noqa
@@ -18,7 +20,7 @@ from .__about__ import (  # noqa
 
 import warnings
 
-# cmp is not used by fmriprep, so ignore nipype-generated warnings
+# cmp is not used by aslprep, so ignore nipype-generated warnings
 warnings.filterwarnings('ignore', r'cmp not installed')
 warnings.filterwarnings('ignore', r'This has not been fully tested. Please report any failures.')
 warnings.filterwarnings('ignore', r"can't resolve package from __spec__ or __package__")

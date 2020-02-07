@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 """
-The fMRIPrep on Docker wrapper
+The aslprep on Docker wrapper
 
 
-This is a lightweight Python wrapper to run fMRIPrep.
+This is a lightweight Python wrapper to run aslprep.
 Docker must be installed and running. This can be checked
 running ::
 
   docker info
 
 Please report any feedback to our GitHub repository
-(https://github.com/poldracklab/fmriprep) and do not
-forget to credit all the authors of software that fMRIPrep
-uses (https://fmriprep.readthedocs.io/en/latest/citing.html).
+(https://github.com/a3sha2/aslprep) and do not
+forget to credit all the authors of software that aslprep
+uses (https://aslprep.readthedocs.io/en/latest/citing.html).
 """
 import sys
 import os
@@ -23,7 +23,7 @@ __version__ = '99.99.99'
 __copyright__ = 'Copyright 2019, Center for Reproducible Neuroscience, Stanford University'
 __credits__ = ['Craig Moodie', 'Ross Blair', 'Oscar Esteban', 'Chris Gorgolewski',
                'Shoshana Berleant', 'Christopher J. Markiewicz', 'Russell A. Poldrack']
-__bugreports__ = 'https://github.com/poldracklab/fmriprep/issues'
+__bugreports__ = 'https://github.com/a3sha2/aslprep/issues'
 
 
 MISSING = """
@@ -223,7 +223,7 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         add_help=False)
 
-    # Standard FMRIPREP arguments
+    # Standard aslprep arguments
     parser.add_argument('bids_dir', nargs='?', type=os.path.abspath,
                         default='')
     parser.add_argument('output_dir', nargs='?', type=os.path.abspath,
@@ -238,7 +238,7 @@ def get_parser():
 
     # Allow alternative images (semi-developer)
     parser.add_argument('-i', '--image', metavar='IMG', type=str,
-                        default='poldracklab/fmriprep:{}'.format(__version__),
+                        default='a3sha2/aslprep:{}'.format(__version__),
                         help='image name')
 
     # Options for mapping files and directories into container
@@ -278,10 +278,10 @@ the spatial normalization.""" % (', '.join('"%s"' % s for s in TF_TEMPLATES),
     # Developer patch/shell options
     g_dev = parser.add_argument_group(
         'Developer options',
-        'Tools for testing and debugging FMRIPREP')
-    g_dev.add_argument('-f', '--patch-fmriprep', metavar='PATH',
+        'Tools for testing and debugging aslprep')
+    g_dev.add_argument('-f', '--patch-aslprep', metavar='PATH',
                        type=os.path.abspath,
-                       help='working fmriprep repository')
+                       help='working aslprep repository')
     g_dev.add_argument('-n', '--patch-niworkflows', metavar='PATH',
                        type=os.path.abspath,
                        help='working niworkflows repository')
@@ -289,7 +289,7 @@ the spatial normalization.""" % (', '.join('"%s"' % s for s in TF_TEMPLATES),
                        type=os.path.abspath,
                        help='working nipype repository')
     g_dev.add_argument('--shell', action='store_true',
-                       help='open shell in image instead of running FMRIPREP')
+                       help='open shell in image instead of running aslprep')
     g_dev.add_argument('--config', metavar='PATH', action='store',
                        type=os.path.abspath, help='Use custom nipype.cfg file')
     g_dev.add_argument('-e', '--env', action='append', nargs=2, metavar=('ENV_VAR', 'value'),
@@ -315,20 +315,20 @@ def main():
     check = check_docker()
     if check < 1:
         if opts.version:
-            print('fmriprep wrapper {!s}'.format(__version__))
+            print('aslprep wrapper {!s}'.format(__version__))
         if opts.help:
             parser.print_help()
         if check == -1:
-            print("fmriprep: Could not find docker command... Is it installed?")
+            print("aslprep: Could not find docker command... Is it installed?")
         else:
-            print("fmriprep: Make sure you have permission to run 'docker'")
+            print("aslprep: Make sure you have permission to run 'docker'")
         return 1
 
     # For --help or --version, ask before downloading an image
     if not check_image(opts.image):
         resp = 'Y'
         if opts.version:
-            print('fmriprep wrapper {!s}'.format(__version__))
+            print('aslprep wrapper {!s}'.format(__version__))
         if opts.help:
             parser.print_help()
         if opts.version or opts.help:
@@ -349,7 +349,7 @@ def main():
         return 1
     if not (opts.help or opts.version or '--reports-only' in unknown_args) and mem_total < 8000:
         print('Warning: <8GB of RAM is available within your Docker '
-              'environment.\nSome parts of fMRIPrep may fail to complete.')
+              'environment.\nSome parts of aslprep may fail to complete.')
         if '--mem_mb' not in unknown_args:
             resp = 'N'
             try:
@@ -368,7 +368,7 @@ def main():
                'DOCKER_VERSION_8395080871=%s' % docker_version]
 
     # Patch working repositories into installed package directories
-    for pkg in ('fmriprep', 'niworkflows', 'nipype'):
+    for pkg in ('aslprep', 'niworkflows', 'nipype'):
         repo_path = getattr(opts, 'patch_' + pkg)
         if repo_path is not None:
             command.extend(['-v',
@@ -413,7 +413,7 @@ def main():
 
     if opts.config:
         command.extend(['-v', ':'.join((
-            opts.config, '/home/fmriprep/.nipype/nipype.cfg', 'ro'))])
+            opts.config, '/home/aslprep/.nipype/nipype.cfg', 'ro'))])
 
     if opts.use_plugin:
         command.extend(['-v', ':'.join((opts.use_plugin, '/tmp/plugin.yml',
@@ -456,7 +456,7 @@ def main():
     print("RUNNING: " + ' '.join(command))
     ret = subprocess.run(command)
     if ret.returncode:
-        print("fMRIPrep: Please report errors to {}".format(__bugreports__))
+        print("aslprep: Please report errors to {}".format(__bugreports__))
     return ret.returncode
 
 
