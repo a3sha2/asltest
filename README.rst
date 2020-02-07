@@ -1,10 +1,6 @@
 *fMRIPrep*: A Robust Preprocessing Pipeline for fMRI Data
 =========================================================
 
-This pipeline is developed by the `Poldrack lab at Stanford University
-<https://poldracklab.stanford.edu/>`_ for use at the `Center for Reproducible
-Neuroscience (CRN) <http://reproducibility.stanford.edu/>`_, as well as for
-open-source software distribution.
 
 .. image:: https://img.shields.io/badge/docker-poldracklab/fmriprep-brightgreen.svg?logo=docker&style=flat
   :target: https://hub.docker.com/r/poldracklab/fmriprep/tags/
