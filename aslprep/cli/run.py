@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-fMRI preprocessing workflow
+ASL preprocessing workflow
 =====
 """
 
@@ -51,11 +51,11 @@ def get_parser():
 
     ParseTemplates.set_nonstandard_spaces(tuple(NONSTANDARD_REFERENCES))
 
-    verstr = 'fmriprep v{}'.format(__version__)
+    verstr = 'aslprep v{}'.format(__version__)
     currentv = Version(__version__)
     is_release = not any((currentv.is_devrelease, currentv.is_prerelease, currentv.is_postrelease))
 
-    parser = ArgumentParser(description='FMRIPREP: fMRI PREProcessing workflows',
+    parser = ArgumentParser(description='ASLPREP: ASL PREProcessing workflows',
                             formatter_class=ArgumentDefaultsHelpFormatter)
 
     # Arguments as specified by BIDS-Apps
@@ -89,9 +89,6 @@ def get_parser():
     #                     help='select a specific run to be processed')
     g_bids.add_argument('-t', '--task-id', action='store',
                         help='select a specific task to be processed')
-    g_bids.add_argument('--echo-idx', action='store', type=int,
-                        help='select a specific echo to be processed in a multiecho series')
-
     g_perfm = parser.add_argument_group('Options to handle performance')
     g_perfm.add_argument('--nthreads', '--n_cpus', '-n-cpus', action='store', type=int,
                          help='maximum number of threads across all processes')
@@ -108,11 +105,6 @@ def get_parser():
                          help='run anatomical workflows only')
     g_perfm.add_argument('--boilerplate', action='store_true',
                          help='generate boilerplate only')
-    g_perfm.add_argument('--ignore-aroma-denoising-errors', action='store_true',
-                         default=False,
-                         help='DEPRECATED (now does nothing, see --error-on-aroma-warnings) '
-                              '- ignores the errors ICA_AROMA returns when there are no '
-                              'components classified as either noise or signal')
     g_perfm.add_argument('--md-only-boilerplate', action='store_true',
                          default=False,
                          help='skip generation of HTML and LaTeX formatted citation with pandoc')
@@ -132,15 +124,6 @@ def get_parser():
         help='ignore selected aspects of the input dataset to disable corresponding '
              'parts of the workflow (a space delimited list)')
     g_conf.add_argument(
-        '--longitudinal', action='store_true',
-        help='treat dataset as longitudinal - may increase runtime')
-    g_conf.add_argument(
-        '--t2s-coreg', action='store_true',
-        help='If provided with multi-echo BOLD dataset, create T2*-map and perform '
-             'T2*-driven coregistration. When multi-echo data is provided and this '
-             'option is not enabled, standard EPI-T1 coregistration is performed '
-             'using the middle echo.')
-    g_conf.add_argument(
         '--output-spaces', nargs='+', action=ParseTemplates,
         help="""\
 Standard and non-standard spaces to resample anatomical and functional images to. \
@@ -153,7 +136,7 @@ grids. \
 Important to note, the ``res-*`` modifier does not define the resolution used for \
 the spatial normalization.
 For further details, please check out \
-https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
+https://aslprep.readthedocs.io/en/%s/spaces.html""" % (
             ', '.join('"%s"' % s for s in templates()), ', '.join(NONSTANDARD_REFERENCES),
             currentv.base_version if is_release else 'latest'))
 
@@ -177,7 +160,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
              'It determines the field of view and resolution of the output images, '
              'but is not used in normalization. '
              'DEPRECATED: please use ``--output-spaces`` instead.')
-    g_conf.add_argument('--bold2t1w-dof', action='store', default=6, choices=[6, 9, 12], type=int,
+    g_conf.add_argument('--asl2t1w-dof', action='store', default=6, choices=[6, 9, 12], type=int,
                         help='Degrees of freedom when registering BOLD to T1w images. '
                              '6 degrees (rotation and translation) are used by default.')
     g_conf.add_argument(
@@ -186,38 +169,7 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
     g_conf.add_argument(
         '--force-no-bbr', action='store_false', dest='use_bbr', default=None,
         help='Do not use boundary-based registration (no goodness-of-fit checks)')
-    g_conf.add_argument(
-        '--medial-surface-nan', required=False, action='store_true', default=False,
-        help='Replace medial wall values with NaNs on functional GIFTI files. Only '
-        'performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).')
-    g_conf.add_argument(
-        '--dummy-scans', required=False, action='store', default=None, type=int,
-        help='Number of non steady state volumes.')
 
-    # ICA_AROMA options
-    g_aroma = parser.add_argument_group('Specific options for running ICA_AROMA')
-    g_aroma.add_argument('--use-aroma', action='store_true', default=False,
-                         help='add ICA_AROMA to your preprocessing stream')
-    g_aroma.add_argument('--aroma-melodic-dimensionality', action='store',
-                         default=-200, type=int,
-                         help='Exact or maximum number of MELODIC components to estimate '
-                         '(positive = exact, negative = maximum)')
-
-    # Confounds options
-    g_confounds = parser.add_argument_group('Specific options for estimating confounds')
-    g_confounds.add_argument(
-        '--return-all-components', required=False, action='store_true', default=False,
-        help='Include all components estimated in CompCor decomposition in the confounds '
-             'file instead of only the components sufficient to explain 50 percent of '
-             'BOLD variance in each CompCor mask')
-    g_confounds.add_argument(
-        '--fd-spike-threshold', required=False, action='store', default=0.5, type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of framewise '
-             'displacement')
-    g_confounds.add_argument(
-        '--dvars-spike-threshold', required=False, action='store', default=1.5, type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of standardised '
-             'DVARS')
 
     #  ANTs options
     g_ants = parser.add_argument_group('Specific options for ANTs registrations')
@@ -243,26 +195,6 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
                        help='EXPERIMENTAL/TEMPORARY: Use SyN correction in addition to '
                        'fieldmap correction, if available')
 
-    # FreeSurfer options
-    g_fs = parser.add_argument_group('Specific options for FreeSurfer preprocessing')
-    g_fs.add_argument(
-        '--fs-license-file', metavar='PATH', type=Path,
-        help='Path to FreeSurfer license key file. Get it (for free) by registering'
-             ' at https://surfer.nmr.mgh.harvard.edu/registration.html')
-
-    # Surface generation xor
-    g_surfs = parser.add_argument_group('Surface preprocessing options')
-    g_surfs.add_argument('--no-submm-recon', action='store_false', dest='hires',
-                         help='disable sub-millimeter (hires) reconstruction')
-    g_surfs_xor = g_surfs.add_mutually_exclusive_group()
-    g_surfs_xor.add_argument('--cifti-output', action='store_true', default=False,
-                             help='output BOLD files as CIFTI dtseries')
-    g_surfs_xor.add_argument('--fs-no-reconall', '--no-freesurfer',
-                             action='store_false', dest='run_reconall',
-                             help='disable FreeSurfer surface preprocessing.'
-                             ' Note : `--no-freesurfer` is deprecated and will be removed in 1.2.'
-                             ' Use `--fs-no-reconall` instead.')
-
     g_other = parser.add_argument_group('Other options')
     g_other.add_argument('-w', '--work-dir', action='store', type=Path, default=Path('work'),
                          help='path where intermediate results should be stored')
@@ -284,8 +216,8 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
                               ' was specified.')
     g_other.add_argument('--notrack', action='store_true', default=False,
                          help='Opt-out of sending tracking information of this run to '
-                              'the FMRIPREP developers. This information helps to '
-                              'improve FMRIPREP and provides an indicator of real '
+                              'the ASLPREP developers. This information helps to '
+                              'improve ASLPREP and provides an indicator of real '
                               'world usage crucial for obtaining funding.')
     g_other.add_argument('--sloppy', action='store_true', default=False,
                          help='Use low-quality tools for speed - TESTING ONLY')
@@ -293,16 +225,16 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (
     latest = check_latest()
     if latest is not None and currentv < latest:
         print("""\
-You are using fMRIPrep-%s, and a newer version of fMRIPrep is available: %s.
+You are using ASLPrep-%s, and a newer version of ASLPrep is available: %s.
 Please check out our documentation about how and when to upgrade:
-https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading""" % (
+https://aslrep.readthedocs.io/en/latest/faq.html#upgrading""" % (
             __version__, latest), file=sys.stderr)
 
     _blist = is_flagged()
     if _blist[0]:
         _reason = _blist[1] or 'unknown'
         print("""\
-WARNING: Version %s of fMRIPrep (current) has been FLAGGED
+WARNING: Version %s of ASLPrep (current) has been FLAGGED
 (reason: %s).
 That means some severe flaw was found in it and we strongly
 discourage its usage.""" % (__version__, _reason), file=sys.stderr)
@@ -321,20 +253,11 @@ def main():
 
     exec_env = os.name
 
-    # special variable set in the container
-    if os.getenv('IS_DOCKER_8395080871'):
-        exec_env = 'singularity'
-        cgroup = Path('/proc/1/cgroup')
-        if cgroup.exists() and 'docker' in cgroup.read_text():
-            exec_env = 'docker'
-            if os.getenv('DOCKER_VERSION_8395080871'):
-                exec_env = 'fmriprep-docker'
-
-    sentry_sdk = None
-    if not opts.notrack:
-        import sentry_sdk
-        from ..utils.sentry import sentry_setup
-        sentry_setup(opts, exec_env)
+    #sentry_sdk = None
+    #if not opts.notrack:
+        #import sentry_sdk
+        #from ..utils.sentry import sentry_setup
+        #sentry_setup(opts, exec_env)
 
     if opts.debug:
         print('WARNING: Option --debug is deprecated and has no effect',
@@ -345,18 +268,6 @@ def main():
         print("Making sure the input data is BIDS compliant (warnings can be ignored in most "
               "cases).")
         validate_input_dir(exec_env, opts.bids_dir, opts.participant_label)
-
-    # FreeSurfer license
-    default_license = str(Path(os.getenv('FREESURFER_HOME')) / 'license.txt')
-    # Precedence: --fs-license-file, $FS_LICENSE, default_license
-    license_file = opts.fs_license_file or Path(os.getenv('FS_LICENSE', default_license))
-    if not license_file.exists():
-        raise RuntimeError("""\
-ERROR: a valid license file is required for FreeSurfer to run. fMRIPrep looked for an existing \
-license file at several paths, in this order: 1) command line argument ``--fs-license-file``; \
-2) ``$FS_LICENSE`` environment variable; and 3) the ``$FREESURFER_HOME/license.txt`` path. Get it \
-(for free) by registering at https://surfer.nmr.mgh.harvard.edu/registration.html""")
-    os.environ['FS_LICENSE'] = str(license_file.resolve())
 
     # Retrieve logging level
     log_level = int(max(25 - 5 * opts.verbose_count, logging.DEBUG))
@@ -380,7 +291,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
         work_dir = Path(retval.get('work_dir'))
         plugin_settings = retval.get('plugin_settings', None)
         subject_list = retval.get('subject_list', None)
-        fmriprep_wf = retval.get('workflow', None)
+        aslprep_wf = retval.get('workflow', None)
         run_uuid = retval.get('run_uuid', None)
 
     if opts.reports_only:
@@ -389,17 +300,17 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
     if opts.boilerplate:
         sys.exit(int(retcode > 0))
 
-    if fmriprep_wf and opts.write_graph:
-        fmriprep_wf.write_graph(graph2use="colored", format='svg', simple_form=True)
+    if aslprep_wf and opts.write_graph:
+        aslprep_wf.write_graph(graph2use="colored", format='svg', simple_form=True)
 
-    retcode = retcode or int(fmriprep_wf is None)
+    retcode = retcode or int(aslprep_wf is None)
     if retcode != 0:
         sys.exit(retcode)
 
     # Check workflow for missing commands
-    missing = check_deps(fmriprep_wf)
+    missing = check_deps(aslprep_wf)
     if missing:
-        print("Cannot run fMRIPrep. Missing dependencies:", file=sys.stderr)
+        print("Cannot run ASLPrep. Missing dependencies:", file=sys.stderr)
         for iface, cmd in missing:
             print("\t{} (Interface: {})".format(cmd, iface))
         sys.exit(2)
@@ -413,11 +324,11 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
 
     errno = 1  # Default is error exit unless otherwise set
     try:
-        fmriprep_wf.run(**plugin_settings)
+        aslprep_wf.run(**plugin_settings)
     except Exception as e:
         if not opts.notrack:
             from ..utils.sentry import process_crashfile
-            crashfolders = [output_dir / 'fmriprep' / 'sub-{}'.format(s) / 'log' / run_uuid
+            crashfolders = [output_dir / 'aslprep' / 'sub-{}'.format(s) / 'log' / run_uuid
                             for s in subject_list]
             for crashfolder in crashfolders:
                 for crashfile in crashfolder.glob('crash*.*'):
@@ -425,22 +336,8 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
 
             if "Workflow did not execute cleanly" not in str(e):
                 sentry_sdk.capture_exception(e)
-        logger.critical('fMRIPrep failed: %s', e)
+        logger.critical('ASLPrep failed: %s', e)
         raise
-    else:
-        if opts.run_reconall:
-            from templateflow import api
-            from niworkflows.utils.misc import _copy_any
-            dseg_tsv = str(api.get('fsaverage', suffix='dseg', extension=['.tsv']))
-            _copy_any(dseg_tsv,
-                      str(output_dir / 'fmriprep' / 'desc-aseg_dseg.tsv'))
-            _copy_any(dseg_tsv,
-                      str(output_dir / 'fmriprep' / 'desc-aparcaseg_dseg.tsv'))
-        errno = 0
-        logger.log(25, 'fMRIPrep finished without errors')
-        if not opts.notrack:
-            sentry_sdk.capture_message('fMRIPrep finished without errors',
-                                       level='info')
     finally:
         from niworkflows.reports import generate_reports
         from subprocess import check_call, CalledProcessError, TimeoutExpired
@@ -448,7 +345,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
         from shutil import copyfile
 
         citation_files = {
-            ext: output_dir / 'fmriprep' / 'logs' / ('CITATION.%s' % ext)
+            ext: output_dir / 'aslprep' / 'logs' / ('CITATION.%s' % ext)
             for ext in ('bib', 'tex', 'md', 'html')
         }
 
@@ -457,7 +354,7 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
             cmd = ['pandoc', '-s', '--bibliography',
                    pkgrf('fmriprep', 'data/boilerplate.bib'),
                    '--filter', 'pandoc-citeproc',
-                   '--metadata', 'pagetitle="fMRIPrep citation boilerplate"',
+                   '--metadata', 'pagetitle="ASLPrep citation boilerplate"',
                    str(citation_files['md']),
                    '-o', str(citation_files['html'])]
 
@@ -480,17 +377,17 @@ license file at several paths, in this order: 1) command line argument ``--fs-li
                 logger.warning('Could not generate CITATION.tex file:\n%s',
                                ' '.join(cmd))
             else:
-                copyfile(pkgrf('fmriprep', 'data/boilerplate.bib'),
+                copyfile(pkgrf('aslprep', 'data/boilerplate.bib'),
                          citation_files['bib'])
         else:
-            logger.warning('fMRIPrep could not find the markdown version of '
+            logger.warning('ASLPrep could not find the markdown version of '
                            'the citation boilerplate (%s). HTML and LaTeX versions'
                            ' of it will not be available', citation_files['md'])
 
         # Generate reports phase
         failed_reports = generate_reports(
-            subject_list, output_dir, work_dir, run_uuid, packagename='fmriprep')
-        write_derivative_description(bids_dir, output_dir / 'fmriprep')
+            subject_list, output_dir, work_dir, run_uuid, packagename='aslprep')
+        write_derivative_description(bids_dir, output_dir / 'aslprep')
 
         if failed_reports and not opts.notrack:
             sentry_sdk.capture_message(
@@ -507,17 +404,17 @@ def build_workflow(opts, retval):
     All the checks and the construction of the workflow are done
     inside this function that has pickleable inputs and output
     dictionary (``retval``) to allow isolation using a
-    ``multiprocessing.Process`` that allows fmriprep to enforce
+    ``multiprocessing.Process`` that allows aslprep to enforce
     a hard-limited memory-scope.
 
     """
     from bids import BIDSLayout
 
     from nipype import logging as nlogging, config as ncfg
-    from niworkflows.utils.bids import collect_participants
-    from niworkflows.reports import generate_reports
+    from ..niworkflows.utils.bids import collect_participants # i have to change this
+    from ..niworkflows.reports import generate_reports # and this
     from ..__about__ import __version__
-    from ..workflows.base import init_fmriprep_wf
+    from ..workflows.base import init_aslprep_wf
 
     build_log = nlogging.getLogger('nipype.workflow')
 
@@ -542,7 +439,7 @@ def build_workflow(opts, retval):
         build_log.error(
             'The selected output folder is the same as the input BIDS folder. '
             'Please modify the output path (suggestion: %s).',
-            bids_dir / 'derivatives' / ('fmriprep-%s' % __version__.split('+')[0]))
+            bids_dir / 'derivatives' / ('aslprep-%s' % __version__.split('+')[0]))
         retval['return_code'] = 1
         return retval
 
@@ -655,36 +552,24 @@ def build_workflow(opts, retval):
         uuid=run_uuid)
     )
 
-    retval['workflow'] = init_fmriprep_wf(
+    retval['workflow'] = init_aslprep_wf(
         anat_only=opts.anat_only,
-        aroma_melodic_dim=opts.aroma_melodic_dimensionality,
-        bold2t1w_dof=opts.bold2t1w_dof,
-        cifti_output=opts.cifti_output,
+        asl2t1w_dof=opts.asl2t1w_dof,
         debug=opts.sloppy,
-        dummy_scans=opts.dummy_scans,
-        echo_idx=opts.echo_idx,
-        err_on_aroma_warn=opts.error_on_aroma_warnings,
         fmap_bspline=opts.fmap_bspline,
         fmap_demean=opts.fmap_no_demean,
         force_syn=opts.force_syn,
-        freesurfer=opts.run_reconall,
         hires=opts.hires,
         ignore=opts.ignore,
         layout=layout,
-        longitudinal=opts.longitudinal,
         low_mem=opts.low_mem,
-        medial_surface_nan=opts.medial_surface_nan,
         omp_nthreads=omp_nthreads,
         output_dir=str(output_dir),
         output_spaces=output_spaces,
         run_uuid=run_uuid,
-        regressors_all_comps=opts.return_all_components,
-        regressors_fd_th=opts.fd_spike_threshold,
-        regressors_dvars_th=opts.dvars_spike_threshold,
         skull_strip_fixed_seed=opts.skull_strip_fixed_seed,
         skull_strip_template=opts.skull_strip_template,
         subject_list=subject_list,
-        t2s_coreg=opts.t2s_coreg,
         task_id=opts.task_id,
         use_aroma=opts.use_aroma,
         use_bbr=opts.use_bbr,
@@ -693,7 +578,7 @@ def build_workflow(opts, retval):
     )
     retval['return_code'] = 0
 
-    logs_path = Path(output_dir) / 'fmriprep' / 'logs'
+    logs_path = Path(output_dir) / 'aslprep' / 'logs'
     boilerplate = retval['workflow'].visit_desc()
 
     if boilerplate:
@@ -748,35 +633,8 @@ your scripts to use ``--output-spaces``.""" % ', '.join(opts.output_space), file
         missing = missing - set(output_spaces.keys())
         output_spaces.update({tpl: {} for tpl in missing})
 
-    FS_SPACES = set(['fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'])
-    if opts.run_reconall and not list(FS_SPACES.intersection(output_spaces.keys())):
-        print("""\
-Although ``--fs-no-reconall`` was not set (i.e., FreeSurfer is to be run), no FreeSurfer \
-output space (valid values are: %s) was selected. Adding default "fsaverage5" to the \
-list of output spaces.""" % ', '.join(FS_SPACES), file=stderr)
-        output_spaces['fsaverage5'] = {}
-
     # Validity of some inputs
     # ERROR check if use_aroma was specified, but the correct template was not
-    if opts.use_aroma and 'MNI152NLin6Asym' not in output_spaces:
-        output_spaces['MNI152NLin6Asym'] = {'res': 2}
-        print("""\
-Option "--use-aroma" requires functional images to be resampled to MNI152NLin6Asym space. \
-The argument "MNI152NLin6Asym:res-2" has been automatically added to the list of output spaces \
-(option ``--output-spaces``).""", file=stderr)
-
-    if opts.cifti_output and 'MNI152NLin2009cAsym' not in output_spaces:
-        if 'MNI152NLin2009cAsym' not in output_spaces:
-            output_spaces['MNI152NLin2009cAsym'] = {'res': 2}
-            print("""Option ``--cifti-output`` requires functional images to be resampled to \
-``MNI152NLin2009cAsym`` space. Such template identifier has been automatically added to the \
-list of output spaces (option "--output-space").""", file=stderr)
-        if not [s for s in output_spaces if s in ('fsaverage5', 'fsaverage6')]:
-            output_spaces['fsaverage5'] = {}
-            print("""Option ``--cifti-output`` requires functional images to be resampled to \
-``fsaverage`` space. The argument ``fsaverage:den-10k`` (a.k.a ``fsaverage5``) has been \
-automatically added to the list of output spaces (option ``--output-space``).""", file=stderr)
-
     if opts.template_resampling_grid is not None:
         print("""Option ``--template-resampling-grid`` is deprecated, please specify \
 resampling grid options as modifiers to templates listed in ``--output-spaces``. \
@@ -790,5 +648,5 @@ The configuration value will be applied to ALL output standard spaces.""")
 
 
 if __name__ == '__main__':
-    raise RuntimeError("fmriprep/cli/run.py should not be run directly;\n"
-                       "Please `pip install` fmriprep and use the `fmriprep` command")
+    raise RuntimeError("aslprep/cli/run.py should not be run directly;\n"
+                       "Please `pip install` aslprep and use the `aslprep` command")

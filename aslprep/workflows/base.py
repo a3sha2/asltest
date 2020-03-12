@@ -3,10 +3,10 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """
-fMRIprep base processing workflows
+ASLprep base processing workflows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: init_fmriprep_wf
+.. autofunction:: init_aslprep_wf
 .. autofunction:: init_single_subject_wf
 
 """
@@ -19,64 +19,49 @@ from copy import deepcopy
 from nipype import __version__ as nipype_ver
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
-from niworkflows.interfaces.nilearn import NILEARN_VERSION
+from ..niworkflows.interfaces.nilearn import NILEARN_VERSION
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.bids import (
+from ..niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ..niworkflows.interfaces.bids import (
     BIDSInfo, BIDSDataGrabber, BIDSFreeSurferDir
 )
-from niworkflows.utils.bids import collect_data
-from niworkflows.utils.misc import fix_multi_T1w_source_name
+from ..niworkflows.utils.bids import collect_data
+from ..niworkflows.utils.misc import fix_multi_T1w_source_name
 from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from ..interfaces import SubjectSummary, AboutSummary, DerivativesDataSink
 from ..__about__ import __version__
-from .bold import init_func_preproc_wf
+from .asl import init_asl_preproc_wf
 
 
-def init_fmriprep_wf(
+def init_aslprep_wf(
     anat_only,
-    aroma_melodic_dim,
-    bold2t1w_dof,
-    cifti_output,
+    asl2t1w_dof,
     debug,
-    dummy_scans,
-    echo_idx,
-    err_on_aroma_warn,
     fmap_bspline,
     fmap_demean,
     force_syn,
-    freesurfer,
     hires,
     ignore,
     layout,
-    longitudinal,
     low_mem,
-    medial_surface_nan,
     omp_nthreads,
     output_dir,
     output_spaces,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
     run_uuid,
     skull_strip_fixed_seed,
     skull_strip_template,
     subject_list,
-    t2s_coreg,
     task_id,
-    use_aroma,
     use_bbr,
     use_syn,
     work_dir,
 ):
     """
-    Build *fMRIPrep*'s pipeline.
+    Build *ASLPrep*'s pipeline.
 
-    This workflow organizes the execution of FMRIPREP, with a sub-workflow for
+    This workflow organizes the execution of ASLPREP, with a sub-workflow for
     each subject.
-    If FreeSurfer's ``recon-all`` is to be run, a corresponding folder is created
-    and populated with any needed template subjects under the derivatives folder.
 
     Workflow Graph
         .. workflow::
@@ -88,19 +73,13 @@ def init_fmriprep_wf(
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
             from fmriprep.workflows.base import init_fmriprep_wf
             os.environ['FREESURFER_HOME'] = os.getcwd()
-            wf = init_fmriprep_wf(
+            wf = init_aslprep_wf(
                 anat_only=False,
-                aroma_melodic_dim=-200,
-                bold2t1w_dof=9,
-                cifti_output=False,
+                asl2t1w_dof=9,
                 debug=False,
-                dummy_scans=None,
-                echo_idx=None,
-                err_on_aroma_warn=False,
                 fmap_bspline=False,
                 fmap_demean=True,
                 force_syn=True,
-                freesurfer=True,
                 hires=True,
                 ignore=[],
                 layout=BIDSLayout('.'),
@@ -110,15 +89,12 @@ def init_fmriprep_wf(
                 omp_nthreads=1,
                 output_dir='.',
                 output_spaces=OrderedDict([
-                    ('MNI152Lin', {}), ('fsaverage', {'density': '10k'}),
-                    ('T1w', {}), ('fsnative', {})]),
-                regressors_all_comps=False,
-                regressors_dvars_th=1.5,
-                regressors_fd_th=0.5,
+                    ('MNI152Lin', {}),
+                    ('T1w', {})),
                 run_uuid='X',
                 skull_strip_fixed_seed=False,
                 skull_strip_template=('OASIS30ANTs', {}),
-                subject_list=['fmripreptest'],
+                subject_list=['aslpreptest'],
                 t2s_coreg=False,
                 task_id='',
                 use_aroma=False,
@@ -178,12 +154,6 @@ def init_fmriprep_wf(
         Values of the dictionary aggregate modifiers (e.g., the value for the key ``MNI152Lin``
         could be ``{'resolution': 2}`` if one wants the resampling to be done on the 2mm
         resolution version of the selected template).
-    regressors_all_comps
-        Return all CompCor component time series instead of the top fraction
-    regressors_dvars_th
-        Criterion for flagging DVARS outliers
-    regressors_fd_th
-        Criterion for flagging framewise displacement outliers
     run_uuid : str
         Unique identifier for execution instance
     skull_strip_template : tuple
@@ -198,8 +168,6 @@ def init_fmriprep_wf(
         For multi-echo EPI, use the calculated T2*-map for T2*-driven coregistration
     task_id : str or None
         Task ID of BOLD series to preprocess, or ``None`` to preprocess all
-    use_aroma : bool
-        Perform ICA-AROMA on MNI-resampled functional series
     use_bbr : bool or None
         Enable/disable boundary-based registration refinement.
         If ``None``, test BBR result for distortion before accepting.
@@ -210,29 +178,14 @@ def init_fmriprep_wf(
         Directory in which to store workflow execution state and temporary files
 
     """
-    fmriprep_wf = Workflow(name='fmriprep_wf')
-    fmriprep_wf.base_dir = work_dir
-
-    if freesurfer:
-        fsdir = pe.Node(
-            BIDSFreeSurferDir(
-                derivatives=output_dir,
-                freesurfer_home=os.getenv('FREESURFER_HOME'),
-                spaces=[s for s in output_spaces.keys() if s.startswith('fsaverage')] + [
-                    'fsnative'] * ('fsnative' in output_spaces)),
-            name='fsdir_run_' + run_uuid.replace('-', '_'), run_without_submitting=True)
+    aslprep_wf = Workflow(name='aslprep_wf')
+    aslprep_wf.base_dir = work_dir
 
     reportlets_dir = os.path.join(work_dir, 'reportlets')
     for subject_id in subject_list:
         single_subject_wf = init_single_subject_wf(
             anat_only=anat_only,
-            aroma_melodic_dim=aroma_melodic_dim,
-            bold2t1w_dof=bold2t1w_dof,
-            cifti_output=cifti_output,
-            debug=debug,
-            dummy_scans=dummy_scans,
-            echo_idx=echo_idx,
-            err_on_aroma_warn=err_on_aroma_warn,
+            asl2t1w_dof=asl2t1w_dof,
             fmap_bspline=fmap_bspline,
             fmap_demean=fmap_demean,
             force_syn=force_syn,
@@ -240,74 +193,52 @@ def init_fmriprep_wf(
             hires=hires,
             ignore=ignore,
             layout=layout,
-            longitudinal=longitudinal,
             low_mem=low_mem,
-            medial_surface_nan=medial_surface_nan,
             name="single_subject_" + subject_id + "_wf",
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             output_spaces=output_spaces,
-            regressors_all_comps=regressors_all_comps,
-            regressors_dvars_th=regressors_dvars_th,
-            regressors_fd_th=regressors_fd_th,
             reportlets_dir=reportlets_dir,
             skull_strip_fixed_seed=skull_strip_fixed_seed,
             skull_strip_template=skull_strip_template,
             subject_id=subject_id,
-            t2s_coreg=t2s_coreg,
             task_id=task_id,
-            use_aroma=use_aroma,
             use_bbr=use_bbr,
             use_syn=use_syn,
         )
 
         single_subject_wf.config['execution']['crashdump_dir'] = (
-            os.path.join(output_dir, "fmriprep", "sub-" + subject_id, 'log', run_uuid)
+            os.path.join(output_dir, "aslprep", "sub-" + subject_id, 'log', run_uuid)
         )
         for node in single_subject_wf._get_all_nodes():
             node.config = deepcopy(single_subject_wf.config)
-        if freesurfer:
-            fmriprep_wf.connect(fsdir, 'subjects_dir',
-                                single_subject_wf, 'inputnode.subjects_dir')
-        else:
-            fmriprep_wf.add_nodes([single_subject_wf])
+        
+        aslprep_wf.add_nodes([single_subject_wf])
 
-    return fmriprep_wf
+    return aslprep_wf
 
 
 def init_single_subject_wf(
     anat_only,
-    aroma_melodic_dim,
-    bold2t1w_dof,
-    cifti_output,
+    asl2t1w_dof,
     debug,
-    dummy_scans,
-    echo_idx,
-    err_on_aroma_warn,
     fmap_bspline,
     fmap_demean,
     force_syn,
-    freesurfer,
     hires,
     ignore,
     layout,
-    longitudinal,
     low_mem,
-    medial_surface_nan,
     name,
     omp_nthreads,
     output_dir,
     output_spaces,
     reportlets_dir,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
     skull_strip_fixed_seed,
     skull_strip_template,
     subject_id,
     t2s_coreg,
     task_id,
-    use_aroma,
     use_bbr,
     use_syn,
 ):
@@ -331,17 +262,11 @@ def init_single_subject_wf(
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
             wf = init_single_subject_wf(
                 anat_only=False,
-                aroma_melodic_dim=-200,
                 bold2t1w_dof=9,
-                cifti_output=False,
                 debug=False,
-                dummy_scans=None,
-                echo_idx=None,
-                err_on_aroma_warn=False,
                 fmap_bspline=False,
                 fmap_demean=True,
                 force_syn=True,
-                freesurfer=True,
                 hires=True,
                 ignore=[],
                 layout=BIDSLayout('.'),
@@ -352,12 +277,9 @@ def init_single_subject_wf(
                 omp_nthreads=1,
                 output_dir='.',
                 output_spaces=OrderedDict([
-                    ('MNI152Lin', {}), ('fsaverage', {'density': '10k'}),
-                    ('T1w', {}), ('fsnative', {})]),
+                    ('MNI152Lin', {}), 
+                    ('T1w', {})]),
                 reportlets_dir='.',
-                regressors_all_comps=False,
-                regressors_dvars_th=1.5,
-                regressors_fd_th=0.5,
                 skull_strip_fixed_seed=False,
                 skull_strip_template=('OASIS30ANTs', {}),
                 subject_id='test',
@@ -372,31 +294,19 @@ def init_single_subject_wf(
     ----------
     anat_only : bool
         Disable functional workflows
-    aroma_melodic_dim : int
-        Maximum number of components identified by MELODIC within ICA-AROMA
-        (default is -200, i.e., no limitation).
-    bold2t1w_dof : 6, 9 or 12
-        Degrees-of-freedom for BOLD-T1w registration
-    cifti_output : bool
-        Generate bold CIFTI file in output spaces
+    asl2t1w_dof : 6, 9 or 12
+        Degrees-of-freedom for ASL-T1w registration
     debug : bool
         Enable debugging outputs
-    dummy_scans : int or None
-        Number of volumes to consider as non steady state
     echo_idx : int or None
         Index of echo to preprocess in multiecho BOLD series,
         or ``None`` to preprocess all
-    err_on_aroma_warn : bool
-        Do not fail on ICA-AROMA errors
     fmap_bspline : bool
         **Experimental**: Fit B-Spline field using least-squares
     fmap_demean : bool
         Demean voxel-shift map during unwarp
     force_syn : bool
         **Temporary**: Always run SyN-based SDC
-    freesurfer : bool
-        Enable FreeSurfer surface reconstruction (may increase runtime)
-    hires : bool
         Enable sub-millimeter preprocessing in FreeSurfer
     ignore : list
         Preprocessing steps to skip (may include "slicetiming", "fieldmaps")
@@ -425,12 +335,6 @@ def init_single_subject_wf(
         resolution version of the selected template).
     reportlets_dir : str
         Directory in which to save reportlets
-    regressors_all_comps
-        Return all CompCor component time series instead of the top fraction
-    regressors_fd_th
-        Criterion for flagging framewise displacement outliers
-    regressors_dvars_th
-        Criterion for flagging DVARS outliers
     skull_strip_fixed_seed : bool
         Do not use a random seed for skull-stripping - will ensure
         run-to-run replicability when used with --omp-nthreads 1
@@ -443,8 +347,6 @@ def init_single_subject_wf(
         For multi-echo EPI, use the calculated T2*-map for T2*-driven coregistration
     task_id : str or None
         Task ID of BOLD series to preprocess, or ``None`` to preprocess all
-    use_aroma : bool
-        Perform ICA-AROMA on MNI-resampled functional series
     use_bbr : bool or None
         Enable/disable boundary-based registration refinement.
         If ``None``, test BBR result for distortion before accepting.
@@ -469,8 +371,8 @@ def init_single_subject_wf(
         subject_data = collect_data(layout, subject_id, task_id, echo_idx)[0]
 
     # Make sure we always go through these two checks
-    if not anat_only and subject_data['bold'] == []:
-        raise Exception("No BOLD images found for participant {} and task {}. "
+    if not anat_only and subject_data['asl'] == []:
+        raise Exception("No ASL images found for participant {} and task {}. "
                         "All workflows require BOLD images.".format(
                             subject_id, task_id if task_id else '<all>'))
 
@@ -486,7 +388,7 @@ performed using *fMRIPrep* {fmriprep_ver}
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
-""".format(fmriprep_ver=__version__, nipype_ver=nipype_ver)
+""".format(aslprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
 Many internal operations of *fMRIPrep* use
@@ -494,8 +396,8 @@ Many internal operations of *fMRIPrep* use
 mostly within the functional processing workflow.
 For more details of the pipeline, see [the section corresponding
 to workflows in *fMRIPrep*'s documentation]\
-(https://fmriprep.readthedocs.io/en/latest/workflows.html \
-"FMRIPrep's documentation").
+(https://asl.readthedocs.io/en/latest/workflows.html \
+ASLPrep's documentation").
 
 
 ### Copyright Waiver
@@ -547,9 +449,7 @@ It is released under the [CC0]\
     anat_preproc_wf = init_anat_preproc_wf(
         bids_root=layout.root,
         debug=debug,
-        freesurfer=freesurfer,
         hires=hires,
-        longitudinal=longitudinal,
         name="anat_preproc_wf",
         num_t1w=len(subject_data['t1w']),
         omp_nthreads=omp_nthreads,
@@ -566,7 +466,7 @@ It is released under the [CC0]\
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t1w', 't1w'),
                             ('t2w', 't2w'),
-                            ('bold', 'bold')]),
+                            ('asl', 'asl')]),
         (bids_info, summary, [('subject', 'subject_id')]),
         (bids_info, anat_preproc_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
         (bidssrc, anat_preproc_wf, [('t1w', 'inputnode.t1w'),
@@ -582,50 +482,37 @@ It is released under the [CC0]\
     # Overwrite ``out_path_base`` of smriprep's DataSinks
     for node in workflow.list_node_names():
         if node.split('.')[-1].startswith('ds_'):
-            workflow.get_node(node).interface.out_path_base = 'fmriprep'
+            workflow.get_node(node).interface.out_path_base = 'aslprep'
 
     if anat_only:
         return workflow
 
-    for bold_file in subject_data['bold']:
-        func_preproc_wf = init_func_preproc_wf(
-            aroma_melodic_dim=aroma_melodic_dim,
-            bold2t1w_dof=bold2t1w_dof,
-            bold_file=bold_file,
-            cifti_output=cifti_output,
+    for asl_file in subject_data['asl']:
+        asl_preproc_wf = init_asl_preproc_wf(
+            asl2t1w_dof=asl2t1w_dof,
+            asl_file=asl_file,
             debug=debug,
-            dummy_scans=dummy_scans,
-            err_on_aroma_warn=err_on_aroma_warn,
             fmap_bspline=fmap_bspline,
             fmap_demean=fmap_demean,
             force_syn=force_syn,
-            freesurfer=freesurfer,
             ignore=ignore,
             layout=layout,
             low_mem=low_mem,
-            medial_surface_nan=medial_surface_nan,
-            num_bold=len(subject_data['bold']),
+            num_bold=len(subject_data['asl']),
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             output_spaces=output_spaces,
             reportlets_dir=reportlets_dir,
-            regressors_all_comps=regressors_all_comps,
-            regressors_fd_th=regressors_fd_th,
-            regressors_dvars_th=regressors_dvars_th,
             t2s_coreg=t2s_coreg,
-            use_aroma=use_aroma,
             use_bbr=use_bbr,
             use_syn=use_syn,
         )
 
         workflow.connect([
-            (anat_preproc_wf, func_preproc_wf,
+            (anat_preproc_wf, asl_preproc_wf,
              [(('outputnode.t1w_preproc', _pop), 'inputnode.t1w_preproc'),
               ('outputnode.t1w_brain', 'inputnode.t1w_brain'),
               ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
-              ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
-              ('outputnode.t1w_aseg', 'inputnode.t1w_aseg'),
-              ('outputnode.t1w_aparc', 'inputnode.t1w_aparc'),
               ('outputnode.t1w_tpms', 'inputnode.t1w_tpms'),
               ('outputnode.template', 'inputnode.template'),
               ('outputnode.anat2std_xfm', 'inputnode.anat2std_xfm'),
@@ -633,11 +520,6 @@ It is released under the [CC0]\
               ('outputnode.joint_template', 'inputnode.joint_template'),
               ('outputnode.joint_anat2std_xfm', 'inputnode.joint_anat2std_xfm'),
               ('outputnode.joint_std2anat_xfm', 'inputnode.joint_std2anat_xfm'),
-              # Undefined if --no-freesurfer, but this is safe
-              ('outputnode.subjects_dir', 'inputnode.subjects_dir'),
-              ('outputnode.subject_id', 'inputnode.subject_id'),
-              ('outputnode.t1w2fsnative_xfm', 'inputnode.t1w2fsnative_xfm'),
-              ('outputnode.fsnative2t1w_xfm', 'inputnode.fsnative2t1w_xfm')]),
         ])
 
     return workflow
