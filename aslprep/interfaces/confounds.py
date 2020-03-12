@@ -280,7 +280,7 @@ def _get_ica_confounds(ica_out_dir, skip_vols, newpath=None):
     return aroma_confounds, motion_ics_out, melodic_mix_out, aroma_metadata_out
 
 
-class FMRISummaryInputSpec(BaseInterfaceInputSpec):
+class ASLSummaryInputSpec(BaseInterfaceInputSpec):
     in_func = File(exists=True, mandatory=True,
                    desc='input BOLD time-series (4D file)')
     in_mask = File(exists=True, mandatory=True,
@@ -300,16 +300,16 @@ class FMRISummaryInputSpec(BaseInterfaceInputSpec):
                        desc='the repetition time')
 
 
-class FMRISummaryOutputSpec(TraitedSpec):
+class ASLSummaryOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc='written file path')
 
 
-class FMRISummary(SimpleInterface):
+class ASLSummary(SimpleInterface):
     """
     Copy the x-form matrices from `hdr_file` to `out_file`.
     """
-    input_spec = FMRISummaryInputSpec
-    output_spec = FMRISummaryOutputSpec
+    input_spec = ASLSummaryInputSpec
+    output_spec = ASLSummaryOutputSpec
 
     def _run_interface(self, runtime):
         self._results['out_file'] = fname_presuffix(

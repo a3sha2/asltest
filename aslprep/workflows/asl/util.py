@@ -4,19 +4,19 @@
 Utility workflows
 ^^^^^^^^^^^^^^^^^
 
-.. autofunction:: init_bold_reference_wf
-.. autofunction:: init_enhance_and_skullstrip_bold_wf
-.. autofunction:: init_skullstrip_bold_wf
+.. autofunction:: init_asl_reference_wf
+.. autofunction:: init_enhance_and_skullstrip_asl_wf
+.. autofunction:: init_skullstrip_asl_wf
 
 """
-from niworkflows.func.util import (
-    init_bold_reference_wf,
-    init_enhance_and_skullstrip_bold_wf,
-    init_skullstrip_bold_wf
+from ...niworkflows.func.util import (
+    init_asl_reference_wf,
+    init_enhance_and_skullstrip_asl_wf,
+    init_skullstrip_asl_wf
 )
 
 __all__ = [
-    'init_bold_reference_wf',
-    'init_enhance_and_skullstrip_bold_wf',
-    'init_skullstrip_bold_wf'
+    'init_asl_reference_wf',
+    'init_enhance_and_skullstrip_asl_wf',
+    'init_skullstrip_asl_wf'
 ]

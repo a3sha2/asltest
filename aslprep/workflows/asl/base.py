@@ -29,7 +29,7 @@ from ...utils.meepi import combine_meepi_source
 from ...interfaces import DerivativesDataSink
 from ...interfaces.reports import FunctionalSummary
 
-# BOLD workflows
+# asl workflows
 from .confounds import init_asl_confs_wf, init_carpetplot_wf
 from .hmc import init_asl_hmc_wf
 from .stc import init_asl_stc_wf
@@ -37,7 +37,7 @@ from .stc import init_asl_stc_wf
 from .registration import init_asl_t1_trans_wf, init_asl_reg_wf
 from .resampling import (
     init_asl_std_trans_wf,
-    init_asl_preproc_trans_wf,
+    init_asl_preproc_trans_wf
 )
 from .outputs import init_asl_derivatives_wf
 from .util import init_asl_reference_wf
@@ -77,8 +77,8 @@ def init_asl_preproc_wf(
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
             wf = init_func_preproc_wf(
                 aroma_melodic_dim=-200,
-                bold2t1w_dof=9,
-                bold_file='/completely/made/up/path/sub-01_task-nback_bold.nii.gz',
+                asl2t1w_dof=9,
+                asl_file='/completely/made/up/path/sub-01_task-nback_asl.nii.gz',
                 cifti_output=False,
                 debug=False,
                 dummy_scans=None,
@@ -104,7 +104,7 @@ def init_asl_preproc_wf(
                 use_bbr=True,
                 use_syn=True,
                 layout=BIDSLayout('.'),
-                num_bold=1,
+                num_asl=1,
             )
 
     Parameters
@@ -112,12 +112,12 @@ def init_asl_preproc_wf(
     aroma_melodic_dim : int
         Maximum number of components identified by MELODIC within ICA-AROMA
         (default is -200, ie. no limitation).
-    bold2t1w_dof : 6, 9 or 12
-        Degrees-of-freedom for BOLD-T1w registration
-    bold_file : str
-        BOLD series NIfTI file
+    asl2t1w_dof : 6, 9 or 12
+        Degrees-of-freedom for asl-T1w registration
+    asl_file : str
+        asl series NIfTI file
     cifti_output : bool
-        Generate bold CIFTI file in output spaces
+        Generate asl CIFTI file in output spaces
     debug : bool
         Enable debugging outputs
     dummy_scans : int or None
@@ -132,7 +132,7 @@ def init_asl_preproc_wf(
         **Temporary**: Always run SyN-based SDC
     freesurfer : bool
         Enable FreeSurfer functional registration (bbregister) and resampling
-        BOLD series to FreeSurfer surface meshes.
+        asl series to FreeSurfer surface meshes.
     ignore : list
         Preprocessing steps to skip (may include "slicetiming", "fieldmaps")
     low_mem : bool
@@ -173,14 +173,14 @@ def init_asl_preproc_wf(
         If fieldmaps are present and enabled, this is not run, by default.
     layout : BIDSLayout
         BIDSLayout structure to enable metadata retrieval
-    num_bold : int
-        Total number of BOLD files that have been set for preprocessing
+    num_asl : int
+        Total number of asl files that have been set for preprocessing
         (default is 1)
 
     Inputs
     ------
-    bold_file
-        BOLD series NIfTI file
+    asl_file
+        asl series NIfTI file
     t1w_preproc
         Bias-corrected structural template image
     t1w_brain
@@ -211,26 +211,26 @@ def init_asl_preproc_wf(
 
     Outputs
     -------
-    bold_t1
-        BOLD series, resampled to T1w space
+    asl_t1
+        asl series, resampled to T1w space
     asl_mask_t1
-        BOLD series mask in T1w space
+        asl series mask in T1w space
     asl_std
-        BOLD series, resampled to template space
+        asl series, resampled to template space
     asl_mask_std
-        BOLD series mask in template space
+        asl series mask in template space
     confounds
         TSV of confounds
     surfaces
-        BOLD series, resampled to FreeSurfer surfaces
+        asl series, resampled to FreeSurfer surfaces
     aroma_noise_ics
         Noise components identified by ICA-AROMA
     melodic_mix
         FSL MELODIC mixing matrix
-    bold_cifti
-        BOLD CIFTI image
+    asl_cifti
+        asl CIFTI image
     cifti_variant
-        combination of target spaces for `bold_cifti`
+        combination of target spaces for `asl_cifti`
 
     See also
     --------
@@ -264,12 +264,12 @@ def init_asl_preproc_wf(
 
     ref_file = asl_file
     mem_gb = {'filesize': 1, 'resampled': 1, 'largemem': 1}
-    bold_tlen = 10
-    multiecho = isinstance(bold_file, list)
+    asl_tlen = 10
+    multiecho = isinstance(asl_file, list)
 
     if multiecho:
-        tes = [layout.get_metadata(echo)['EchoTime'] for echo in bold_file]
-        ref_file = dict(zip(tes, bold_file))[min(tes)]
+        tes = [layout.get_metadata(echo)['EchoTime'] for echo in asl_file]
+        ref_file = dict(zip(tes, asl_file))[min(tes)]
 
     if os.path.isfile(ref_file):
         asl_tlen, mem_gb = _create_mem_gb(ref_file)
@@ -277,7 +277,7 @@ def init_asl_preproc_wf(
     wf_name = _get_wf_name(ref_file)
     LOGGER.log(25, ('Creating asl processing workflow for "%s" (%.2f GB / %d TRs). '
                     'Memory resampled/largemem=%.2f/%.2f GB.'),
-               ref_file, mem_gb['filesize'], bold_tlen, mem_gb['resampled'], mem_gb['largemem'])
+               ref_file, mem_gb['filesize'], asl_tlen, mem_gb['resampled'], mem_gb['largemem'])
 
     # For doc building purposes
     if not hasattr(layout, 'parse_file_entities'):
@@ -385,9 +385,9 @@ effects of other kernels [@lanczos].
                 'asl_mask_std','asl_native', 'confounds','confounds_metadata']),
         name='outputnode')
 
-    # BOLD buffer: an identity used as a pointer to either the original BOLD
+    # asl buffer: an identity used as a pointer to either the original asl
     # or the STC'ed one for further use.
-    boldbuffer = pe.Node(niu.IdentityInterface(fields=['asl_file']), name='aslbuffer')
+    aslbuffer = pe.Node(niu.IdentityInterface(fields=['asl_file']), name='aslbuffer')
 
     summary = pe.Node(
         FunctionalSummary(
@@ -420,15 +420,15 @@ effects of other kernels [@lanczos].
         ]),
     ])
 
-    # Generate a tentative boldref
-    bold_reference_wf = init_asl_reference_wf(omp_nthreads=omp_nthreads)
-    bold_reference_wf.inputs.inputnode.dummy_scans = dummy_scans
+    # Generate a tentative aslref
+    asl_reference_wf = init_asl_reference_wf(omp_nthreads=omp_nthreads)
+    asl_reference_wf.inputs.inputnode.dummy_scans = dummy_scans
     if sbref_file is not None:
         workflow.connect([
-            (val_sbref, bold_reference_wf, [('out_file', 'inputnode.sbref_file')]),
+            (val_sbref, asl_reference_wf, [('out_file', 'inputnode.sbref_file')]),
         ])
 
-    # Top-level BOLD splitter
+    # Top-level asl splitter
     asl_split = pe.Node(FSLSplit(dimension='t'), name='asl_split',
                          mem_gb=mem_gb['filesize'] * 3)
 
@@ -481,15 +481,15 @@ effects of other kernels [@lanczos].
         ])
         if not multiecho:
             workflow.connect([
-                (bold_reference_wf, bold_stc_wf, [
+                (asl_reference_wf, asl_stc_wf, [
                     ('outputnode.asl_file', 'inputnode.asl_file')])])
         else:  # for meepi, iterate through stc_wf for all workflows
-            meepi_echos = boldbuffer.clone(name='meepi_echos')
+            meepi_echos = aslbuffer.clone(name='meepi_echos')
             meepi_echos.iterables = ('asl_file', asl_file)
             workflow.connect([
-                (meepi_echos, bold_stc_wf, [('asl_file', 'inputnode.asl_file')])])
+                (meepi_echos, asl_stc_wf, [('asl_file', 'inputnode.asl_file')])])
     elif not multiecho:  # STC is too short or False
-        # bypass STC from original BOLD to the splitter through boldbuffer
+        # bypass STC from original asl to the splitter through aslbuffer
         workflow.connect([
             (asl_reference_wf, aslbuffer, [('outputnode.asl_file', 'asl_file')])])
     else:
@@ -601,9 +601,9 @@ effects of other kernels [@lanczos].
     ])
 
     # for standard EPI data, pass along correct file
-    if not multiecho:
+    if not multiecho :
         workflow.connect([
-            (inputnode, func_derivatives_wf, [
+            (inputnode, asl_derivatives_wf, [
                 ('asl_file', 'inputnode.source_file')]),
             (asl_asl_trans_wf, asl_confounds_wf, [
                 ('outputnode.asl', 'inputnode.asl'),
@@ -679,9 +679,9 @@ effects of other kernels [@lanczos].
                 ('outputnode.itk_asl_to_t1', 'transforms')]),
             (asl_t1_trans_wf, aslmask_to_t1w, [
                 ('outputnode.asl_mask_t1', 'reference_image')]),
-            (asl_asl_trans_wf if not multiecho else bold_t2s_wf, boldmask_to_t1w, [
+            (asl_asl_trans_wf if not multiecho else asl_t2s_wf, aslmask_to_t1w, [
                 ('outputnode.asl_mask', 'input_image')]),
-            (boldmask_to_t1w, outputnode, [
+            (aslmask_to_t1w, outputnode, [
                 ('output_image', 'asl_mask_t1')]),
         ])
 
@@ -733,7 +733,7 @@ effects of other kernels [@lanczos].
             workflow.connect([
                 (inputnode, carpetplot_wf, [
                     ('joint_std2anat_xfm', 'inputnode.std2anat_xfm')]),
-                (asl_asl_trans_wf if not multiecho else bold_t2s_wf, carpetplot_wf, [
+                (asl_asl_trans_wf if not multiecho else asl_t2s_wf, carpetplot_wf, [
                     ('outputnode.asl', 'inputnode.asl'),
                     ('outputnode.asl_mask', 'inputnode.asl_mask')]),
                 (asl_reg_wf, carpetplot_wf, [
@@ -748,7 +748,7 @@ effects of other kernels [@lanczos].
                     ('out_files', 'inputnode.asl_split')])
             ])
         else:
-            split_opt_comb = bold_split.clone(name='split_opt_comb')
+            split_opt_comb = asl_split.clone(name='split_opt_comb')
             workflow.connect([
                 (asl_t2s_wf, split_opt_comb, [
                     ('outputnode.asl', 'in_file')]),
@@ -799,7 +799,7 @@ effects of other kernels [@lanczos].
 
     workflow.connect([
         (summary, ds_report_summary, [('out_report', 'in_file')]),
-        (bold_reference_wf, ds_report_validation, [
+        (asl_reference_wf, ds_report_validation, [
             ('outputnode.validation_report', 'in_file')]),
     ])
 
@@ -837,11 +837,11 @@ def _create_mem_gb(asl_fname):
 
 def _get_wf_name(asl_fname):
     """
-    Derive the workflow name for supplied BOLD file.
+    Derive the workflow name for supplied asl file.
 
-    >>> _get_wf_name('/completely/made/up/path/sub-01_task-nback_bold.nii.gz')
+    >>> _get_wf_name('/completely/made/up/path/sub-01_task-nback_asl.nii.gz')
     'func_preproc_task_nback_wf'
-    >>> _get_wf_name('/completely/made/up/path/sub-01_task-nback_run-01_echo-1_bold.nii.gz')
+    >>> _get_wf_name('/completely/made/up/path/sub-01_task-nback_run-01_echo-1_asl.nii.gz')
     'func_preproc_task_nback_run_01_echo_1_wf'
 
     """
@@ -849,7 +849,7 @@ def _get_wf_name(asl_fname):
     fname = split_filename(asl_fname)[1]
     fname_nosub = '_'.join(fname.split("_")[1:])
     # if 'echo' in fname_nosub:
-    #     fname_nosub = '_'.join(fname_nosub.split("_echo-")[:1]) + "_bold"
+    #     fname_nosub = '_'.join(fname_nosub.split("_echo-")[:1]) + "_asl"
     name = "asl_preproc_" + fname_nosub.replace(
         ".", "_").replace(" ", "").replace("-", "_").replace("_asl", "_wf")
 

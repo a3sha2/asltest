@@ -58,10 +58,12 @@ def init_aslprep_wf(
     work_dir,
 ):
     """
-    Build *ASLPrep*'s pipeline.
+    Build *aslprep*'s pipeline.
 
-    This workflow organizes the execution of ASLPREP, with a sub-workflow for
+    This workflow organizes the execution of aslprep, with a sub-workflow for
     each subject.
+    If FreeSurfer's ``recon-all`` is to be run, a corresponding folder is created
+    and populated with any needed template subjects under the derivatives folder.
 
     Workflow Graph
         .. workflow::
@@ -71,15 +73,21 @@ def init_aslprep_wf(
             import os
             from collections import namedtuple, OrderedDict
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
-            from fmriprep.workflows.base import init_fmriprep_wf
+            from aslprep.workflows.base import init_aslprep_wf
             os.environ['FREESURFER_HOME'] = os.getcwd()
             wf = init_aslprep_wf(
                 anat_only=False,
+                aroma_melodic_dim=-200,
                 asl2t1w_dof=9,
+                cifti_output=False,
                 debug=False,
+                dummy_scans=None,
+                echo_idx=None,
+                err_on_aroma_warn=False,
                 fmap_bspline=False,
                 fmap_demean=True,
                 force_syn=True,
+                freesurfer=True,
                 hires=True,
                 ignore=[],
                 layout=BIDSLayout('.'),
@@ -89,8 +97,11 @@ def init_aslprep_wf(
                 omp_nthreads=1,
                 output_dir='.',
                 output_spaces=OrderedDict([
-                    ('MNI152Lin', {}),
-                    ('T1w', {})),
+                    ('MNI152Lin', {}), ('fsaverage', {'density': '10k'}),
+                    ('T1w', {}), ('fsnative', {})]),
+                regressors_all_comps=False,
+                regressors_dvars_th=1.5,
+                regressors_fd_th=0.5,
                 run_uuid='X',
                 skull_strip_fixed_seed=False,
                 skull_strip_template=('OASIS30ANTs', {}),
@@ -108,16 +119,16 @@ def init_aslprep_wf(
     ----------
     anat_only : bool
         Disable functional workflows
-    bold2t1w_dof : 6, 9 or 12
-        Degrees-of-freedom for BOLD-T1w registration
+    asl2t1w_dof : 6, 9 or 12
+        Degrees-of-freedom for asl-T1w registration
     cifti_output : bool
-        Generate bold CIFTI file in output spaces
+        Generate asl CIFTI file in output spaces
     debug : bool
         Enable debugging outputs
     dummy_scans : int or None
         Number of volumes to consider as non steady state
     echo_idx : int or None
-        Index of echo to preprocess in multiecho BOLD series,
+        Index of echo to preprocess in multiecho asl series,
         or ``None`` to preprocess all
     err_on_aroma_warn : bool
         Do not fail on ICA-AROMA errors
@@ -154,6 +165,12 @@ def init_aslprep_wf(
         Values of the dictionary aggregate modifiers (e.g., the value for the key ``MNI152Lin``
         could be ``{'resolution': 2}`` if one wants the resampling to be done on the 2mm
         resolution version of the selected template).
+    regressors_all_comps
+        Return all CompCor component time series instead of the top fraction
+    regressors_dvars_th
+        Criterion for flagging DVARS outliers
+    regressors_fd_th
+        Criterion for flagging framewise displacement outliers
     run_uuid : str
         Unique identifier for execution instance
     skull_strip_template : tuple
@@ -167,7 +184,9 @@ def init_aslprep_wf(
     t2s_coreg : bool
         For multi-echo EPI, use the calculated T2*-map for T2*-driven coregistration
     task_id : str or None
-        Task ID of BOLD series to preprocess, or ``None`` to preprocess all
+        Task ID of asl series to preprocess, or ``None`` to preprocess all
+    use_aroma : bool
+        Perform ICA-AROMA on MNI-resampled functional series
     use_bbr : bool or None
         Enable/disable boundary-based registration refinement.
         If ``None``, test BBR result for distortion before accepting.
@@ -186,10 +205,10 @@ def init_aslprep_wf(
         single_subject_wf = init_single_subject_wf(
             anat_only=anat_only,
             asl2t1w_dof=asl2t1w_dof,
+            debug=debug,
             fmap_bspline=fmap_bspline,
             fmap_demean=fmap_demean,
             force_syn=force_syn,
-            freesurfer=freesurfer,
             hires=hires,
             ignore=ignore,
             layout=layout,
@@ -212,7 +231,7 @@ def init_aslprep_wf(
         )
         for node in single_subject_wf._get_all_nodes():
             node.config = deepcopy(single_subject_wf.config)
-        
+       
         aslprep_wf.add_nodes([single_subject_wf])
 
     return aslprep_wf
@@ -237,7 +256,6 @@ def init_single_subject_wf(
     skull_strip_fixed_seed,
     skull_strip_template,
     subject_id,
-    t2s_coreg,
     task_id,
     use_bbr,
     use_syn,
@@ -250,23 +268,29 @@ def init_single_subject_wf(
     Anatomical preprocessing is performed in a single workflow, regardless of
     the number of sessions.
     Functional preprocessing is performed using a separate workflow for each
-    individual BOLD series.
+    individual asl series.
 
     Workflow Graph
         .. workflow::
             :graph2use: orig
             :simple_form: yes
 
-            from fmriprep.workflows.base import init_single_subject_wf
+            from aslprep.workflows.base import init_single_subject_wf
             from collections import namedtuple, OrderedDict
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
             wf = init_single_subject_wf(
                 anat_only=False,
-                bold2t1w_dof=9,
+                aroma_melodic_dim=-200,
+                asl2t1w_dof=9,
+                cifti_output=False,
                 debug=False,
+                dummy_scans=None,
+                echo_idx=None,
+                err_on_aroma_warn=False,
                 fmap_bspline=False,
                 fmap_demean=True,
                 force_syn=True,
+                freesurfer=True,
                 hires=True,
                 ignore=[],
                 layout=BIDSLayout('.'),
@@ -277,9 +301,12 @@ def init_single_subject_wf(
                 omp_nthreads=1,
                 output_dir='.',
                 output_spaces=OrderedDict([
-                    ('MNI152Lin', {}), 
-                    ('T1w', {})]),
+                    ('MNI152Lin', {}), ('fsaverage', {'density': '10k'}),
+                    ('T1w', {}), ('fsnative', {})]),
                 reportlets_dir='.',
+                regressors_all_comps=False,
+                regressors_dvars_th=1.5,
+                regressors_fd_th=0.5,
                 skull_strip_fixed_seed=False,
                 skull_strip_template=('OASIS30ANTs', {}),
                 subject_id='test',
@@ -294,19 +321,31 @@ def init_single_subject_wf(
     ----------
     anat_only : bool
         Disable functional workflows
+    aroma_melodic_dim : int
+        Maximum number of components identified by MELODIC within ICA-AROMA
+        (default is -200, i.e., no limitation).
     asl2t1w_dof : 6, 9 or 12
-        Degrees-of-freedom for ASL-T1w registration
+        Degrees-of-freedom for asl-T1w registration
+    cifti_output : bool
+        Generate asl CIFTI file in output spaces
     debug : bool
         Enable debugging outputs
+    dummy_scans : int or None
+        Number of volumes to consider as non steady state
     echo_idx : int or None
-        Index of echo to preprocess in multiecho BOLD series,
+        Index of echo to preprocess in multiecho asl series,
         or ``None`` to preprocess all
+    err_on_aroma_warn : bool
+        Do not fail on ICA-AROMA errors
     fmap_bspline : bool
         **Experimental**: Fit B-Spline field using least-squares
     fmap_demean : bool
         Demean voxel-shift map during unwarp
     force_syn : bool
         **Temporary**: Always run SyN-based SDC
+    freesurfer : bool
+        Enable FreeSurfer surface reconstruction (may increase runtime)
+    hires : bool
         Enable sub-millimeter preprocessing in FreeSurfer
     ignore : list
         Preprocessing steps to skip (may include "slicetiming", "fieldmaps")
@@ -335,6 +374,12 @@ def init_single_subject_wf(
         resolution version of the selected template).
     reportlets_dir : str
         Directory in which to save reportlets
+    regressors_all_comps
+        Return all CompCor component time series instead of the top fraction
+    regressors_fd_th
+        Criterion for flagging framewise displacement outliers
+    regressors_dvars_th
+        Criterion for flagging DVARS outliers
     skull_strip_fixed_seed : bool
         Do not use a random seed for skull-stripping - will ensure
         run-to-run replicability when used with --omp-nthreads 1
@@ -346,7 +391,9 @@ def init_single_subject_wf(
     t2s_coreg : bool
         For multi-echo EPI, use the calculated T2*-map for T2*-driven coregistration
     task_id : str or None
-        Task ID of BOLD series to preprocess, or ``None`` to preprocess all
+        Task ID of asl series to preprocess, or ``None`` to preprocess all
+    use_aroma : bool
+        Perform ICA-AROMA on MNI-resampled functional series
     use_bbr : bool or None
         Enable/disable boundary-based registration refinement.
         If ``None``, test BBR result for distortion before accepting.
@@ -361,19 +408,19 @@ def init_single_subject_wf(
 
     """
     from ..config import NONSTANDARD_REFERENCES
-    if name in ('single_subject_wf', 'single_subject_fmripreptest_wf'):
+    if name in ('single_subject_wf', 'single_subject_aslpreptest_wf'):
         # for documentation purposes
         subject_data = {
             't1w': ['/completely/made/up/path/sub-01_T1w.nii.gz'],
-            'bold': ['/completely/made/up/path/sub-01_task-nback_bold.nii.gz']
+            'asl': ['/completely/made/up/path/sub-01_task-nback_asl.nii.gz']
         }
     else:
-        subject_data = collect_data(layout, subject_id, task_id, echo_idx)[0]
+        subject_data = collect_data(layout, subject_id, task_id)[0]
 
     # Make sure we always go through these two checks
     if not anat_only and subject_data['asl'] == []:
-        raise Exception("No ASL images found for participant {} and task {}. "
-                        "All workflows require BOLD images.".format(
+        raise Exception("No asl images found for participant {} and task {}. "
+                        "All workflows require asl images.".format(
                             subject_id, task_id if task_id else '<all>'))
 
     if not subject_data['t1w']:
@@ -383,26 +430,26 @@ def init_single_subject_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """
 Results included in this manuscript come from preprocessing
-performed using *fMRIPrep* {fmriprep_ver}
-(@fmriprep1; @fmriprep2; RRID:SCR_016216),
+performed using *aslprep* {aslprep_ver}
+(@aslprep1; @aslprep2; RRID:SCR_016216),
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
 """.format(aslprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
-Many internal operations of *fMRIPrep* use
+Many internal operations of *aslprep* use
 *Nilearn* {nilearn_ver} [@nilearn, RRID:SCR_001362],
 mostly within the functional processing workflow.
 For more details of the pipeline, see [the section corresponding
-to workflows in *fMRIPrep*'s documentation]\
-(https://asl.readthedocs.io/en/latest/workflows.html \
-ASLPrep's documentation").
+to workflows in *aslprep*'s documentation]\
+(https://aslprep.readthedocs.io/en/latest/workflows.html \
+"aslprep's documentation").
 
 
 ### Copyright Waiver
 
-The above boilerplate text was automatically generated by fMRIPrep
+The above boilerplate text was automatically generated by aslprep
 with the express intention that users should copy and paste this
 text into their manuscripts *unchanged*.
 It is released under the [CC0]\
@@ -449,6 +496,8 @@ It is released under the [CC0]\
     anat_preproc_wf = init_anat_preproc_wf(
         bids_root=layout.root,
         debug=debug,
+        freesurfer=None,
+        longitudinal=None,
         hires=hires,
         name="anat_preproc_wf",
         num_t1w=len(subject_data['t1w']),
@@ -498,12 +547,11 @@ It is released under the [CC0]\
             ignore=ignore,
             layout=layout,
             low_mem=low_mem,
-            num_bold=len(subject_data['asl']),
+            num_asl=len(subject_data['asl']),
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             output_spaces=output_spaces,
             reportlets_dir=reportlets_dir,
-            t2s_coreg=t2s_coreg,
             use_bbr=use_bbr,
             use_syn=use_syn,
         )
@@ -513,6 +561,9 @@ It is released under the [CC0]\
              [(('outputnode.t1w_preproc', _pop), 'inputnode.t1w_preproc'),
               ('outputnode.t1w_brain', 'inputnode.t1w_brain'),
               ('outputnode.t1w_mask', 'inputnode.t1w_mask'),
+              ('outputnode.t1w_dseg', 'inputnode.t1w_dseg'),
+              ('outputnode.t1w_aseg', 'inputnode.t1w_aseg'),
+              ('outputnode.t1w_aparc', 'inputnode.t1w_aparc'),
               ('outputnode.t1w_tpms', 'inputnode.t1w_tpms'),
               ('outputnode.template', 'inputnode.template'),
               ('outputnode.anat2std_xfm', 'inputnode.anat2std_xfm'),
@@ -520,6 +571,8 @@ It is released under the [CC0]\
               ('outputnode.joint_template', 'inputnode.joint_template'),
               ('outputnode.joint_anat2std_xfm', 'inputnode.joint_anat2std_xfm'),
               ('outputnode.joint_std2anat_xfm', 'inputnode.joint_std2anat_xfm'),
+              # Undefined if --no-freesurfer, but this is safe
+              ]),
         ])
 
     return workflow

@@ -4,36 +4,36 @@
 Resampling workflows
 ++++++++++++++++++++
 
-.. autofunction:: init_bold_surf_wf
-.. autofunction:: init_bold_std_trans_wf
-.. autofunction:: init_bold_preproc_trans_wf
+.. autofunction:: init_asl_surf_wf
+.. autofunction:: init_asl_std_trans_wf
+.. autofunction:: init_asl_preproc_trans_wf
 
 """
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, freesurfer as fs
 from nipype.interfaces.fsl import Split as FSLSplit
 
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
-from niworkflows.interfaces.freesurfer import (
+from ...niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
+from ...niworkflows.interfaces.freesurfer import (
     MedialNaNs,
-    # See https://github.com/poldracklab/fmriprep/issues/768
+    # See https://github.com/poldracklab/aslprep/issues/768
     PatchedConcatenateLTA as ConcatenateLTA,
     PatchedLTAConvert as LTAConvert
 )
-from niworkflows.interfaces.itk import MultiApplyTransforms
-from niworkflows.interfaces.utils import GenerateSamplingReference
-from niworkflows.interfaces.utility import KeySelect
-from niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
-from niworkflows.interfaces.nilearn import Merge
+from ...niworkflows.interfaces.itk import MultiApplyTransforms
+from ...niworkflows.interfaces.utils import GenerateSamplingReference
+from ...niworkflows.interfaces.utility import KeySelect
+from ...niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
+from ...niworkflows.interfaces.nilearn import Merge
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces import DerivativesDataSink
 
-from .util import init_bold_reference_wf
+from .util import init_asl_reference_wf
 
 
-def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf_wf'):
+def init_asl_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='asl_surf_wf'):
     """
     Sample functional images to FreeSurfer surfaces.
 
@@ -46,8 +46,8 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
             :graph2use: colored
             :simple_form: yes
 
-            from fmriprep.workflows.bold import init_bold_surf_wf
-            wf = init_bold_surf_wf(mem_gb=0.1,
+            from aslprep.workflows.asl import init_asl_surf_wf
+            wf = init_asl_surf_wf(mem_gb=0.1,
                                    output_spaces=['T1w', 'fsnative',
                                                  'template', 'fsaverage5'],
                                    medial_surface_nan=False)
@@ -66,7 +66,7 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
     Inputs
     ------
     source_file
-        Motion-corrected BOLD series in T1 space
+        Motion-corrected asl series in T1 space
     t1w_preproc
         Bias-corrected structural template image
     subjects_dir
@@ -79,7 +79,7 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
     Outputs
     -------
     surfaces
-        BOLD series, resampled to FreeSurfer surfaces
+        asl series, resampled to FreeSurfer surfaces
 
     """
     # Ensure volumetric spaces do not sneak into this workflow
@@ -89,7 +89,7 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
 
     if spaces:
         workflow.__desc__ = """\
-The BOLD time-series, were resampled to surfaces on the following
+The asl time-series, were resampled to surfaces on the following
 spaces: {out_spaces}.
 """.format(out_spaces=', '.join(['*%s*' % s for s in spaces]))
     inputnode = pe.Node(
@@ -165,17 +165,16 @@ spaces: {out_spaces}.
     return workflow
 
 
-def init_bold_std_trans_wf(
-    freesurfer,
+def init_asl_std_trans_wf(
     mem_gb,
     omp_nthreads,
     standard_spaces,
-    name='bold_std_trans_wf',
+    name='asl_std_trans_wf',
     use_compression=True,
     use_fieldwarp=False
 ):
     """
-    Sample fMRI into standard space with a single-step resampling of the original BOLD series.
+    Sample fMRI into standard space with a single-step resampling of the original asl series.
 
     .. important::
         This workflow provides two outputnodes.
@@ -191,8 +190,8 @@ def init_bold_std_trans_wf(
             :simple_form: yes
 
             from collections import OrderedDict
-            from fmriprep.workflows.bold import init_bold_std_trans_wf
-            wf = init_bold_std_trans_wf(
+            from aslprep.workflows.asl import init_asl_std_trans_wf
+            wf = init_asl_std_trans_wf(
                 freesurfer=True,
                 mem_gb=3,
                 omp_nthreads=1,
@@ -203,9 +202,9 @@ def init_bold_std_trans_wf(
     Parameters
     ----------
     freesurfer : bool
-        Whether to generate FreeSurfer's aseg/aparc segmentations on BOLD space.
+        Whether to generate FreeSurfer's aseg/aparc segmentations on asl space.
     mem_gb : float
-        Size of BOLD file in GB
+        Size of asl file in GB
     omp_nthreads : int
         Maximum number of threads an individual process may use
     standard_spaces : OrderedDict
@@ -216,35 +215,35 @@ def init_bold_std_trans_wf(
         could be ``{'resolution': 2}`` if one wants the resampling to be done on the 2mm
         resolution version of the selected template).
     name : str
-        Name of workflow (default: ``bold_std_trans_wf``)
+        Name of workflow (default: ``asl_std_trans_wf``)
     use_compression : bool
-        Save registered BOLD series as ``.nii.gz``
+        Save registered asl series as ``.nii.gz``
     use_fieldwarp : bool
-        Include SDC warp in single-shot transform from BOLD to MNI
+        Include SDC warp in single-shot transform from asl to MNI
 
     Inputs
     ------
     anat2std_xfm
         List of anatomical-to-standard space transforms generated during
         spatial normalization.
-    bold_aparc
+    asl_aparc
         FreeSurfer's ``aparc+aseg.mgz`` atlas projected into the T1w reference
         (only if ``recon-all`` was run).
-    bold_aseg
+    asl_aseg
         FreeSurfer's ``aseg.mgz`` atlas projected into the T1w reference
         (only if ``recon-all`` was run).
-    bold_mask
+    asl_mask
         Skull-stripping mask of reference image
-    bold_split
+    asl_split
         Individual 3D volumes, not motion corrected
     fieldwarp
         a :abbr:`DFM (displacements field map)` in ITK format
     hmc_xforms
         List of affine transforms aligning each volume to ``ref_image`` in ITK format
-    itk_bold_to_t1
-        Affine transform from ``ref_bold_brain`` to T1 space (ITK format)
+    itk_asl_to_t1
+        Affine transform from ``ref_asl_brain`` to T1 space (ITK format)
     name_source
-        BOLD series NIfTI file
+        asl series NIfTI file
         Used to recover original information lost during processing
     templates
         List of templates that were applied as targets during
@@ -252,17 +251,17 @@ def init_bold_std_trans_wf(
 
     Outputs
     -------
-    bold_std
-        BOLD series, resampled to template space
-    bold_std_ref
-        Reference, contrast-enhanced summary of the BOLD series, resampled to template space
-    bold_mask_std
-        BOLD series mask in template space
-    bold_aseg_std
-        FreeSurfer's ``aseg.mgz`` atlas, in template space at the BOLD resolution
+    asl_std
+        asl series, resampled to template space
+    asl_std_ref
+        Reference, contrast-enhanced summary of the asl series, resampled to template space
+    asl_mask_std
+        asl series mask in template space
+    asl_aseg_std
+        FreeSurfer's ``aseg.mgz`` atlas, in template space at the asl resolution
         (only if ``recon-all`` was run)
-    bold_aparc_std
-        FreeSurfer's ``aparc+aseg.mgz`` atlas, in template space at the BOLD resolution
+    asl_aparc_std
+        FreeSurfer's ``aparc+aseg.mgz`` atlas, in template space at the asl resolution
         (only if ``recon-all`` was run)
     templates
         Template identifiers synchronized correspondingly to previously
@@ -276,26 +275,24 @@ def init_bold_std_trans_wf(
 
     if len(vol_std_spaces) == 1:
         workflow.__desc__ = """\
-The BOLD time-series were resampled into standard space,
-generating a *preprocessed BOLD run in {tpl} space*.
+The asl time-series were resampled into standard space,
+generating a *preprocessed asl run in {tpl} space*.
 """.format(tpl=vol_std_spaces)
     else:
         workflow.__desc__ = """\
-The BOLD time-series were resampled into several standard spaces,
+The asl time-series were resampled into several standard spaces,
 correspondingly generating the following *spatially-normalized,
-preprocessed BOLD runs*: {tpl}.
+preprocessed asl runs*: {tpl}.
 """.format(tpl=', '.join(vol_std_spaces))
 
     inputnode = pe.Node(
         niu.IdentityInterface(fields=[
             'anat2std_xfm',
-            'bold_aparc',
-            'bold_aseg',
-            'bold_mask',
-            'bold_split',
+            'asl_mask',
+            'asl_split',
             'fieldwarp',
             'hmc_xforms',
-            'itk_bold_to_t1',
+            'itk_asl_to_t1',
             'name_source',
             'templates',
         ]),
@@ -331,9 +328,9 @@ preprocessed BOLD runs*: {tpl}.
     workflow.connect([
         (inputnode, select_std, [('templates', 'keys'),
                                  ('anat2std_xfm', 'anat2std_xfm')]),
-        (inputnode, mask_std_tfm, [('bold_mask', 'input_image')]),
-        (inputnode, gen_ref, [(('bold_split', _first), 'moving_image')]),
-        (inputnode, mask_merge_tfms, [(('itk_bold_to_t1', _aslist), 'in2')]),
+        (inputnode, mask_std_tfm, [('asl_mask', 'input_image')]),
+        (inputnode, gen_ref, [(('asl_split', _first), 'moving_image')]),
+        (inputnode, mask_merge_tfms, [(('itk_asl_to_t1', _aslist), 'in2')]),
         (select_std, select_tpl, [('key', 'template')]),
         (select_std, mask_merge_tfms, [('anat2std_xfm', 'in1')]),
         (select_std, gen_ref, [(('resolution', _is_native), 'keep_native')]),
@@ -350,65 +347,44 @@ preprocessed BOLD runs*: {tpl}.
     if use_fieldwarp:
         workflow.connect([(inputnode, merge_xforms, [('fieldwarp', 'in3')])])
 
-    bold_to_std_transform = pe.Node(
+    asl_to_std_transform = pe.Node(
         MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
-        name='bold_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+        name='asl_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
 
     merge = pe.Node(Merge(compress=use_compression), name='merge',
                     mem_gb=mem_gb * 3)
 
     # Generate a reference on the target T1w space
-    gen_final_ref = init_bold_reference_wf(
+    gen_final_ref = init_asl_reference_wf(
         omp_nthreads=omp_nthreads, pre_mask=True)
 
     workflow.connect([
         (inputnode, merge_xforms, [
-            (('itk_bold_to_t1', _aslist), 'in2')]),
+            (('itk_asl_to_t1', _aslist), 'in2')]),
         (inputnode, merge, [('name_source', 'header_source')]),
-        (inputnode, bold_to_std_transform, [('bold_split', 'input_image')]),
+        (inputnode, asl_to_std_transform, [('asl_split', 'input_image')]),
         (select_std, merge_xforms, [('anat2std_xfm', 'in1')]),
-        (merge_xforms, bold_to_std_transform, [('out', 'transforms')]),
-        (gen_ref, bold_to_std_transform, [('out_file', 'reference_image')]),
-        (bold_to_std_transform, merge, [('out_files', 'in_files')]),
-        (merge, gen_final_ref, [('out_file', 'inputnode.bold_file')]),
-        (mask_std_tfm, gen_final_ref, [('output_image', 'inputnode.bold_mask')]),
+        (merge_xforms, asl_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, asl_to_std_transform, [('out_file', 'reference_image')]),
+        (asl_to_std_transform, merge, [('out_files', 'in_files')]),
+        (merge, gen_final_ref, [('out_file', 'inputnode.asl_file')]),
+        (mask_std_tfm, gen_final_ref, [('output_image', 'inputnode.asl_mask')]),
     ])
 
     # Connect output nodes
-    output_names = ['bold_std', 'bold_std_ref', 'bold_mask_std', 'templates']
-    if freesurfer:
-        output_names += ['bold_aseg_std', 'bold_aparc_std']
+    output_names = ['asl_std', 'asl_std_ref', 'asl_mask_std', 'templates']
+    
 
     # poutputnode - parametric output node
     poutputnode = pe.Node(niu.IdentityInterface(fields=output_names),
                           name='poutputnode')
 
     workflow.connect([
-        (gen_final_ref, poutputnode, [('outputnode.ref_image', 'bold_std_ref')]),
-        (merge, poutputnode, [('out_file', 'bold_std')]),
-        (mask_std_tfm, poutputnode, [('output_image', 'bold_mask_std')]),
+        (gen_final_ref, poutputnode, [('outputnode.ref_image', 'asl_std_ref')]),
+        (merge, poutputnode, [('out_file', 'asl_std')]),
+        (mask_std_tfm, poutputnode, [('output_image', 'asl_mask_std')]),
         (select_std, poutputnode, [('key', 'templates')]),
     ])
-
-    if freesurfer:
-        # Sample the parcellation files to functional space
-        aseg_std_tfm = pe.Node(
-            ApplyTransforms(interpolation='MultiLabel', float=True),
-            name='aseg_std_tfm', mem_gb=1)
-        aparc_std_tfm = pe.Node(
-            ApplyTransforms(interpolation='MultiLabel', float=True),
-            name='aparc_std_tfm', mem_gb=1)
-
-        workflow.connect([
-            (inputnode, aseg_std_tfm, [('bold_aseg', 'input_image')]),
-            (inputnode, aparc_std_tfm, [('bold_aparc', 'input_image')]),
-            (select_std, aseg_std_tfm, [('anat2std_xfm', 'transforms')]),
-            (select_std, aparc_std_tfm, [('anat2std_xfm', 'transforms')]),
-            (gen_ref, aseg_std_tfm, [('out_file', 'reference_image')]),
-            (gen_ref, aparc_std_tfm, [('out_file', 'reference_image')]),
-            (aseg_std_tfm, poutputnode, [('output_image', 'bold_aseg_std')]),
-            (aparc_std_tfm, poutputnode, [('output_image', 'bold_aparc_std')]),
-        ])
 
     # Connect outputnode to the parameterized outputnode
     outputnode = pe.JoinNode(niu.IdentityInterface(fields=output_names),
@@ -420,8 +396,8 @@ preprocessed BOLD runs*: {tpl}.
     return workflow
 
 
-def init_bold_preproc_trans_wf(mem_gb, omp_nthreads,
-                               name='bold_preproc_trans_wf',
+def init_asl_preproc_trans_wf(mem_gb, omp_nthreads,
+                               name='asl_preproc_trans_wf',
                                use_compression=True,
                                use_fieldwarp=False,
                                split_file=False,
@@ -430,28 +406,28 @@ def init_bold_preproc_trans_wf(mem_gb, omp_nthreads,
     Resample in native (original) space.
 
     This workflow resamples the input fMRI in its native (original)
-    space in a "single shot" from the original BOLD series.
+    space in a "single shot" from the original asl series.
 
     Workflow Graph
         .. workflow::
             :graph2use: colored
             :simple_form: yes
 
-            from fmriprep.workflows.bold import init_bold_preproc_trans_wf
-            wf = init_bold_preproc_trans_wf(mem_gb=3, omp_nthreads=1)
+            from aslprep.workflows.asl import init_asl_preproc_trans_wf
+            wf = init_asl_preproc_trans_wf(mem_gb=3, omp_nthreads=1)
 
     Parameters
     ----------
     mem_gb : float
-        Size of BOLD file in GB
+        Size of asl file in GB
     omp_nthreads : int
         Maximum number of threads an individual process may use
     name : str
-        Name of workflow (default: ``bold_std_trans_wf``)
+        Name of workflow (default: ``asl_std_trans_wf``)
     use_compression : bool
-        Save registered BOLD series as ``.nii.gz``
+        Save registered asl series as ``.nii.gz``
     use_fieldwarp : bool
-        Include SDC warp in single-shot transform from BOLD to MNI
+        Include SDC warp in single-shot transform from asl to MNI
     split_file : bool
         Whether the input file should be splitted (it is a 4D file)
         or it is a list of 3D files (default ``False``, do not split)
@@ -461,12 +437,12 @@ def init_bold_preproc_trans_wf(mem_gb, omp_nthreads,
 
     Inputs
     ------
-    bold_file
+    asl_file
         Individual 3D volumes, not motion corrected
-    bold_mask
+    asl_mask
         Skull-stripping mask of reference image
     name_source
-        BOLD series NIfTI file
+        asl series NIfTI file
         Used to recover original information lost during processing
     hmc_xforms
         List of affine transforms aligning each volume to ``ref_image`` in ITK format
@@ -475,74 +451,74 @@ def init_bold_preproc_trans_wf(mem_gb, omp_nthreads,
 
     Outputs
     -------
-    bold
-        BOLD series, resampled in native space, including all preprocessing
-    bold_mask
-        BOLD series mask calculated with the new time-series
-    bold_ref
-        BOLD reference image: an average-like 3D image of the time-series
-    bold_ref_brain
-        Same as ``bold_ref``, but once the brain mask has been applied
+    asl
+        asl series, resampled in native space, including all preprocessing
+    asl_mask
+        asl series mask calculated with the new time-series
+    asl_ref
+        asl reference image: an average-like 3D image of the time-series
+    asl_ref_brain
+        Same as ``asl_ref``, but once the brain mask has been applied
 
     """
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-The BOLD time-series (including slice-timing correction when applied)
+The asl time-series (including slice-timing correction when applied)
 were resampled onto their original, native space by applying
 {transforms}.
-These resampled BOLD time-series will be referred to as *preprocessed
-BOLD in original space*, or just *preprocessed BOLD*.
+These resampled asl time-series will be referred to as *preprocessed
+asl in original space*, or just *preprocessed asl*.
 """.format(transforms="""\
 a single, composite transform to correct for head-motion and
 susceptibility distortions""" if use_fieldwarp else """\
 the transforms to correct for head-motion""")
 
     inputnode = pe.Node(niu.IdentityInterface(fields=[
-        'name_source', 'bold_file', 'bold_mask', 'hmc_xforms', 'fieldwarp']),
+        'name_source', 'asl_file', 'asl_mask', 'hmc_xforms', 'fieldwarp']),
         name='inputnode'
     )
 
     outputnode = pe.Node(
-        niu.IdentityInterface(fields=['bold', 'bold_mask', 'bold_ref', 'bold_ref_brain']),
+        niu.IdentityInterface(fields=['asl', 'asl_mask', 'asl_ref', 'asl_ref_brain']),
         name='outputnode')
 
-    bold_transform = pe.Node(
+    asl_transform = pe.Node(
         MultiApplyTransforms(interpolation=interpolation, float=True, copy_dtype=True),
-        name='bold_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+        name='asl_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
 
     merge = pe.Node(Merge(compress=use_compression), name='merge',
                     mem_gb=mem_gb * 3)
 
-    # Generate a new BOLD reference
-    bold_reference_wf = init_bold_reference_wf(omp_nthreads=omp_nthreads)
-    bold_reference_wf.__desc__ = None  # Unset description to avoid second appearance
+    # Generate a new asl reference
+    asl_reference_wf = init_asl_reference_wf(omp_nthreads=omp_nthreads)
+    asl_reference_wf.__desc__ = None  # Unset description to avoid second appearance
 
     workflow.connect([
         (inputnode, merge, [('name_source', 'header_source')]),
-        (bold_transform, merge, [('out_files', 'in_files')]),
-        (merge, bold_reference_wf, [('out_file', 'inputnode.bold_file')]),
-        (merge, outputnode, [('out_file', 'bold')]),
-        (bold_reference_wf, outputnode, [
-            ('outputnode.ref_image', 'bold_ref'),
-            ('outputnode.ref_image_brain', 'bold_ref_brain'),
-            ('outputnode.bold_mask', 'bold_mask')]),
+        (asl_transform, merge, [('out_files', 'in_files')]),
+        (merge, asl_reference_wf, [('out_file', 'inputnode.asl_file')]),
+        (merge, outputnode, [('out_file', 'asl')]),
+        (asl_reference_wf, outputnode, [
+            ('outputnode.ref_image', 'asl_ref'),
+            ('outputnode.ref_image_brain', 'asl_ref_brain'),
+            ('outputnode.asl_mask', 'asl_mask')]),
     ])
 
     # Input file is not splitted
     if split_file:
-        bold_split = pe.Node(FSLSplit(dimension='t'), name='bold_split',
+        asl_split = pe.Node(FSLSplit(dimension='t'), name='asl_split',
                              mem_gb=mem_gb * 3)
         workflow.connect([
-            (inputnode, bold_split, [('bold_file', 'in_file')]),
-            (bold_split, bold_transform, [
+            (inputnode, asl_split, [('asl_file', 'in_file')]),
+            (asl_split, asl_transform, [
                 ('out_files', 'input_image'),
                 (('out_files', _first), 'reference_image'),
             ])
         ])
     else:
         workflow.connect([
-            (inputnode, bold_transform, [('bold_file', 'input_image'),
-                                         (('bold_file', _first), 'reference_image')]),
+            (inputnode, asl_transform, [('asl_file', 'input_image'),
+                                         (('asl_file', _first), 'reference_image')]),
         ])
 
     if use_fieldwarp:
@@ -551,63 +527,63 @@ the transforms to correct for head-motion""")
         workflow.connect([
             (inputnode, merge_xforms, [('fieldwarp', 'in1'),
                                        ('hmc_xforms', 'in2')]),
-            (merge_xforms, bold_transform, [('out', 'transforms')]),
+            (merge_xforms, asl_transform, [('out', 'transforms')]),
         ])
     else:
         def _aslist(val):
             return [val]
         workflow.connect([
-            (inputnode, bold_transform, [(('hmc_xforms', _aslist), 'transforms')]),
+            (inputnode, asl_transform, [(('hmc_xforms', _aslist), 'transforms')]),
         ])
 
     # Code ready to generate a pre/post processing report
-    # bold_bold_report_wf = init_bold_preproc_report_wf(
+    # asl_asl_report_wf = init_asl_preproc_report_wf(
     #     mem_gb=mem_gb['resampled'],
     #     reportlets_dir=reportlets_dir
     # )
     # workflow.connect([
-    #     (inputnode, bold_bold_report_wf, [
-    #         ('bold_file', 'inputnode.name_source'),
-    #         ('bold_file', 'inputnode.in_pre')]),  # This should be after STC
-    #     (bold_bold_trans_wf, bold_bold_report_wf, [
-    #         ('outputnode.bold', 'inputnode.in_post')]),
+    #     (inputnode, asl_asl_report_wf, [
+    #         ('asl_file', 'inputnode.name_source'),
+    #         ('asl_file', 'inputnode.in_pre')]),  # This should be after STC
+    #     (asl_asl_trans_wf, asl_asl_report_wf, [
+    #         ('outputnode.asl', 'inputnode.in_post')]),
     # ])
 
     return workflow
 
 
-def init_bold_preproc_report_wf(mem_gb, reportlets_dir, name='bold_preproc_report_wf'):
+def init_asl_preproc_report_wf(mem_gb, reportlets_dir, name='asl_preproc_report_wf'):
     """
     Generate a visual report.
 
     This workflow generates and saves a reportlet showing the effect of resampling
-    the BOLD signal using the standard deviation maps.
+    the asl signal using the standard deviation maps.
 
     Workflow Graph
         .. workflow::
             :graph2use: orig
             :simple_form: yes
 
-            from fmriprep.workflows.bold.resampling import init_bold_preproc_report_wf
-            wf = init_bold_preproc_report_wf(mem_gb=1, reportlets_dir='.')
+            from aslprep.workflows.asl.resampling import init_asl_preproc_report_wf
+            wf = init_asl_preproc_report_wf(mem_gb=1, reportlets_dir='.')
 
     Parameters
     ----------
     mem_gb : float
-        Size of BOLD file in GB
+        Size of asl file in GB
     reportlets_dir : str
         Directory in which to save reportlets
     name : str, optional
-        Workflow name (default: bold_preproc_report_wf)
+        Workflow name (default: asl_preproc_report_wf)
 
     Inputs
     ------
     in_pre
-        BOLD time-series, before resampling
+        asl time-series, before resampling
     in_post
-        BOLD time-series, after resampling
+        asl time-series, after resampling
     name_source
-        BOLD series NIfTI file
+        asl series NIfTI file
         Used to recover original information lost during processing
 
     """
@@ -622,22 +598,22 @@ def init_bold_preproc_report_wf(mem_gb, reportlets_dir, name='bold_preproc_repor
     pre_tsnr = pe.Node(TSNR(), name='pre_tsnr', mem_gb=mem_gb * 4.5)
     pos_tsnr = pe.Node(TSNR(), name='pos_tsnr', mem_gb=mem_gb * 4.5)
 
-    bold_rpt = pe.Node(SimpleBeforeAfter(), name='bold_rpt',
+    asl_rpt = pe.Node(SimpleBeforeAfter(), name='asl_rpt',
                        mem_gb=0.1)
-    ds_report_bold = pe.Node(
+    ds_report_asl = pe.Node(
         DerivativesDataSink(base_directory=reportlets_dir, desc='preproc',
-                            keep_dtype=True), name='ds_report_bold',
+                            keep_dtype=True), name='ds_report_asl',
         mem_gb=DEFAULT_MEMORY_MIN_GB,
         run_without_submitting=True
     )
 
     workflow.connect([
-        (inputnode, ds_report_bold, [('name_source', 'source_file')]),
+        (inputnode, ds_report_asl, [('name_source', 'source_file')]),
         (inputnode, pre_tsnr, [('in_pre', 'in_file')]),
         (inputnode, pos_tsnr, [('in_post', 'in_file')]),
-        (pre_tsnr, bold_rpt, [('stddev_file', 'before')]),
-        (pos_tsnr, bold_rpt, [('stddev_file', 'after')]),
-        (bold_rpt, ds_report_bold, [('out_report', 'in_file')]),
+        (pre_tsnr, asl_rpt, [('stddev_file', 'before')]),
+        (pos_tsnr, asl_rpt, [('stddev_file', 'after')]),
+        (asl_rpt, ds_report_asl, [('out_report', 'in_file')]),
     ])
 
     return workflow

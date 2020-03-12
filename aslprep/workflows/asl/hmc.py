@@ -11,13 +11,13 @@ Head-Motion Estimation and Correction (HMC) of BOLD images
 
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, fsl
-from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from niworkflows.interfaces import NormalizeMotionParams
-from niworkflows.interfaces.itk import MCFLIRT2ITK
+from ...niworkflows.engine.workflows import LiterateWorkflow as Workflow
+from ...niworkflows.interfaces import NormalizeMotionParams
+from ...niworkflows.interfaces.itk import MCFLIRT2ITK
 from ...config import DEFAULT_MEMORY_MIN_GB
 
 
-def init_bold_hmc_wf(mem_gb, omp_nthreads, name='bold_hmc_wf'):
+def init_asl_hmc_wf(mem_gb, omp_nthreads, name='asl_hmc_wf'):
     """
     Build a workflow to estimate head-motion parameters.
 
@@ -67,7 +67,7 @@ parameters) are estimated before any spatiotemporal filtering using
 `mcflirt` [FSL {fsl_ver}, @mcflirt].
 """.format(fsl_ver=fsl.Info().version() or '<ver>')
 
-    inputnode = pe.Node(niu.IdentityInterface(fields=['bold_file', 'raw_ref_image']),
+    inputnode = pe.Node(niu.IdentityInterface(fields=['asl_file', 'raw_ref_image']),
                         name='inputnode')
     outputnode = pe.Node(
         niu.IdentityInterface(fields=['xforms', 'movpar_file']),
@@ -86,7 +86,7 @@ parameters) are estimated before any spatiotemporal filtering using
 
     workflow.connect([
         (inputnode, mcflirt, [('raw_ref_image', 'ref_file'),
-                              ('bold_file', 'in_file')]),
+                              ('asl_file', 'in_file')]),
         (inputnode, fsl2itk, [('raw_ref_image', 'in_source'),
                               ('raw_ref_image', 'in_reference')]),
         (mcflirt, fsl2itk, [('mat_file', 'in_files')]),

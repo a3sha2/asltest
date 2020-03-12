@@ -7,21 +7,18 @@ from niworkflows.interfaces import (
 
 from .reports import SubjectSummary, FunctionalSummary, AboutSummary
 from .fmap import FieldEnhance, FieldToRadS, FieldToHz, Phasediff2Fieldmap
-from .confounds import GatherConfounds, ICAConfounds, FMRISummary
+from .confounds import GatherConfounds, ICAConfounds, ASLSummary
 from .multiecho import T2SMap
 
 
 class DerivativesDataSink(bids.DerivativesDataSink):
-    out_path_base = 'fmriprep'
+    out_path_base = 'aslprep'
 
 
 __all__ = [
     'bids',
-    'cifti',
-    'freesurfer',
     'images',
     'itk',
-    'surf',
     'utils',
     'SubjectSummary',
     'FunctionalSummary',
@@ -31,8 +28,7 @@ __all__ = [
     'FieldToHz',
     'Phasediff2Fieldmap',
     'GatherConfounds',
-    'ICAConfounds',
-    'FMRISummary',
+    'ASLSummary',
     'T2SMap',
     'DerivativesDataSink',
 ]
