@@ -49,7 +49,7 @@ def get_parser():
     from ..config import NONSTANDARD_REFERENCES
     from .version import check_latest, is_flagged
 
-    ParseTemplates.set_nonstandard_spaces(tuple(NONSTANDARD_REFERENCES))
+    #ParseTemplates.set_nonstandard_spaces(tuple(NONSTANDARD_REFERENCES))
 
     verstr = 'aslprep v{}'.format(__version__)
     currentv = Version(__version__)
@@ -419,7 +419,7 @@ def build_workflow(opts, retval):
     build_log = nlogging.getLogger('nipype.workflow')
 
     INIT_MSG = """
-    Running fMRIPREP version {version}:
+    Running ASLPREP version {version}:
       * BIDS dataset path: {bids_dir}.
       * Participant list: {subject_list}.
       * Run identifier: {uuid}.
