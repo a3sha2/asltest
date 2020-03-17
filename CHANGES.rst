@@ -1,3 +1,145 @@
+20.0.0 (February 24, 2020)
+==========================
+The major release of 2020 is here!
+
+*fMRIPrep* is transitioning to a calendar version system
+(`#1912 <https://github.com/poldracklab/fmriprep/issues/1912>`__).
+The `CalVer <https://calver.org/>`__ system reflects *fMRIPrep*'s nature
+as an evolving workflow and does not impose any artificial incentive for
+"big-change" releases.
+It also permits to quickly see how out-of-date someone's version is.
+As of now, the *default* version increment is the minor release number.
+Hence, when the minor release number changes the work directory of *fMRIPrep*
+will presumably break.
+Micro releases only include bug-fixes that can reuse exiting working directories.
+
+The major highlight of this release entails CIFTI generation to match
+:abbr:`HCP (Human Connectome Project)` *grayordinates*.
+In addition, the new *fMRIPrep 20.0.0* has gone through a major overhaul in the
+handling of standard spaces (spatial normalizations, fusion of prior knowledge from
+corresponding atlases) and imaging outputs.
+In particular, the new series almost completely implements the new
+syntax for ``--output-spaces`` to describe the (non)standard spatial references
+that shall be used for generating outputs
+(`#1604 <https://github.com/poldracklab/fmriprep/issues/1604>`__).
+
+This release includes contributions from Azeez Adebimpe and Basile Pinsard - very much appreciated.
+
+  * ENH: Warn when existing output version does not match current pipeline version (#1967)
+  * ENH: Add ``--clean-workdir`` argument (#1966)
+  * ENH: Refactor of how spatial normalization targets and ``--output-spaces`` are maintained (#1955) (#1983)
+  * ENH: Add ``--bids-filter-file`` argument for more controlled data querying (#1770)
+  * FIX: Ensure subject ID is used when selecting BIDS data (#1982)
+  * FIX: Display a log message when processing completes successfully (#1977)
+  * DOC: Clean up surface outputs (#1993)
+  * DOC: Integrate intersphinx, drop external module wrapping (#1989)
+  * DOC: Improve custom template usage description (#1969)
+  * MAINT: Use local docker registry (#1990)
+  * MAINT: Pin connectome-workbench 1.3.2, add to documented dependencies (#1958)
+  * MAINT: Pin NiBabel, NiWorkflows, sMRIPrep (#1971)
+  * MAINT: CI build error fixes (#1976)
+
+.. admonition:: Author list for papers based on *fMRIPrep* v20.0.0
+
+    As described in the `Contributor Guidelines
+    <https://github.com/poldracklab/fmriprep/blob/d65cfdd80443c5ca779680b1087d14f189e8ceb5/CONTRIBUTING.md#publications>`__, anyone
+    listed as developer or contributor may write and submit manuscripts regarding
+    *fMRIPrep*.
+    To do so, please move the author(s) name(s) to the front of the following list.
+
+    Markiewicz, Christopher J. (1); DuPre, Elizabeth (2); Goncalves, Mathias (1); Kent, James D. (3); Ciric, Rastko (1); Salo, Taylor (4); de la Vega, Alejandro (5); Finc, Karolina (6); Feingold, Franklin (1); Urchs, Sebastian (2); Blair, Ross W. (1); Erramuzpe, Asier (7); Valabregue, Romain (8); Jacoby, Nir (9); Lurie, Daniel J. (10); Heinsfeld, Anibal S. (11); Halchenko, Yaroslav O. (12); Sneve, Markus H. (13); Devenyi, Grabriel A. (14); Liem, Franz (15); Gomez, Daniel E. P. (16); Adebimpe, Azeez (17); Velasco, Pablo (18); Groen, Iris I. A. (19); Ma, Feilong (12); Rivera-Dompenciel, Adriana (3); Amlien, Inge K. (13); Cieslak, Matthew (17); Ghosh, Satrajit S. (20, 21); Isik, Ayse Ilkay (22); Moodie, Craig A. (1); Naveau, Mikaël (23); Satterthwaite, Theodore D. (17); Sitek, Kevin R. (24); Stojić, Hrvoje (25); Thompson, William H (1); Tooley, Ursula A. (26); Wright, Jessey (1); Ye, Zhifang (27); Gorgolewski, Krzysztof J. (1); Poldrack, Russell A. (1); Esteban, Oscar (1)
+
+    Affiliations:
+
+      1. Department of Psychology, Stanford University
+      2. Montreal Neurological Institute, McGill University
+      3. Neuroscience Program, University of Iowa
+      4. Department of Psychology, Florida International University
+      5. University of Texas at Austin
+      6. Centre for Modern Interdisciplinary Technologies, Nicolaus Copernicus University in Toruń
+      7. Computational Neuroimaging Lab, BioCruces Health Research Institute
+      8. CENIR, INSERM U1127, CNRS UMR 7225, UPMC Univ Paris 06 UMR S 1127, Institut du Cerveau et de la Moelle épinière, ICM, F-75013, Paris, France
+      9. Department of Psychology, Columbia University
+      10. Department of Psychology, University of California, Berkeley
+      11. Child Mind Institute
+      12. Dartmouth College: Hanover, NH, United States
+      13. Center for Lifespan Changes in Brain and Cognition, University of Oslo
+      14. Department of Psychiatry, McGill University
+      15. URPP Dynamics of Healthy Aging, University of Zurich
+      16. Donders Institute for Brain, Cognition and Behaviour, Radboud University Nijmegen
+      17. Perelman School of Medicine, University of Pennsylvania, PA, USA
+      18. Center for Brain Imaging, New York University
+      19. Department of Psychology, New York University, NY, USA
+      20. McGovern Institute for Brain Research, MIT, MA, USA
+      21. Department of Otolaryngology, Harvard Medical School, MA, USA
+      22. Max Planck Institute for Empirical Aesthetics
+      23. Cyceron, UMS 3408 (CNRS - UCBN), France
+      24. Speech & Hearing Bioscience & Technology Program, Harvard University
+      25. Max Planck UCL Centre for Computational Psychiatry and Ageing Research, University College London
+      26. Department of Neuroscience, University of Pennsylvania, PA, USA
+      27. State Key Laboratory of Cognitive Neuroscience and Learning, Beijing Normal University
+
+1.5.9 (February 14, 2020)
+=========================
+Bug-fix release in the 1.5.x series.
+
+This release fixes a bug for some phase maps generated by Philips. A full fix with better handling
+of all phase maps will be available in an upcoming minor release (20.0 or 20.1), but this should permit
+users who are processing with 1.5.x to resolve this issue in a way that does not affect phase maps
+unaffected by the bug.
+
+  * FIX: Center phase maps around central mode, avoiding FoV-related outliers (poldracklab/sdcflows#89)
+
+1.5.8 (January 28, 2020)
+========================
+Bug-fix release in the 1.5.x series.
+
+  * FIX: SyN SDC logic failing in ``--force-syn`` cases (#1951)
+
+1.5.7 (January 23, 2020)
+========================
+Bug-fix release in the 1.5.x series.
+
+This release fixes a bug specifically for T1w images with dimensions ≤256 voxels
+but a field-of-view >256mm.
+
+  * FIX: Calculate FoV with shape and zooms (poldracklab/smriprep#161)
+
+1.5.6 (January 22, 2020)
+========================
+Bug-fix release in the 1.5.x series.
+
+  * FIX: Include all functional runs in reports, establish consistent ordering (#1937)
+  * FIX: Use SyN-SDC if --use-syn-sdc and --ignore fieldmaps are used (#1942)
+
+1.5.5 (January 14, 2020)
+=========================
+Bug-fix release in the 1.5.x series.
+
+* FIX: Correctly select volumetric spaces for carpetplot (#1932) @effigies
+* FIX: Constrain setuptools for Python 2.7 installs of fmriprep-docker (#1933) @effigies
+
+1.5.4 (December 18, 2019)
+=========================
+Bug-fix release in the 1.5.x series.
+
+* FIX: Integrate fix for poldracklab/sdcflows#77 (pin niworkflows-1.0.3, sdcflows-1.0.3) @oesteban
+
+1.5.3 (December 12, 2019)
+=========================
+The last patch release of the 1.5.x series containing features.
+As of 1.5.4, patch releases will only contain bug fixes, maintenance
+tasks and minor documentation revisions.
+
+* FIX: Do not run STC if SliceTiming metadata is set but empty (#1854) @oesteban
+* FIX: Link to EPINorm issue in README (#1903) @adelavega
+* FIX: Respect ``--dummy-scans 0`` (#1908) @jdkent
+* ENH: Upgrade SDCFlows to new API (1.0.0) (#1886) @oesteban
+* ENH: Add ``--fs-subjects-dir`` flag (#1901) @effigies
+* DOC: Improving accessibility of confounds description (#1877) @kfinc
+* MAINT: Ensure data is packaged in sdist (#1902) @effigies
+* MAINT: Remove deprecated command-line arguments (#1909) @mgxd
+
 1.5.2 (December 2, 2019)
 ========================
 Bug-fix release in the 1.5.x series.
