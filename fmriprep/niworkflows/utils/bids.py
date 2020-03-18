@@ -11,7 +11,7 @@ from pathlib import Path
 import json
 import re
 import warnings
-from bids import BIDSLayout
+from ...pybids import BIDSLayout
 from packaging.version import Version
 
 __all__ = ['BIDS_NAME']
@@ -44,7 +44,7 @@ class BIDSWarning(RuntimeWarning):
 
 
 def collect_participants(bids_dir, participant_label=None, strict=False,
-                         bids_validate=True):
+                         bids_validate=False):
     """
     List the participants under the BIDS root and checks that participants
     designated with the participant_label argument exist in that folder.
@@ -121,7 +121,7 @@ def collect_participants(bids_dir, participant_label=None, strict=False,
 
 
 def collect_data(bids_dir, participant_label, task=None, echo=None,
-                 bids_validate=True, bids_filters=None):
+                 bids_validate=False, bids_filters=None):
     """
     Uses pybids to retrieve the input data for a given participant
     >>> bids_root, _ = collect_data(str(datadir / 'ds054'), '100185',
@@ -175,10 +175,10 @@ def collect_data(bids_dir, participant_label, task=None, echo=None,
         queries[acq].update(entities)
 
     if task:
-        queries['bold']['task'] = task
+        queries['asl']['task'] = task
 
     if echo:
-        queries['bold']['echo'] = echo
+        queries['asl']['echo'] = echo
 
     subj_data = {
         dtype: sorted(layout.get(return_type='file', subject=participant_label,
@@ -186,8 +186,8 @@ def collect_data(bids_dir, participant_label, task=None, echo=None,
         for dtype, query in queries.items()}
 
     # Special case: multi-echo BOLD, grouping echos
-    if any(['_echo-' in bold for bold in subj_data['bold']]):
-        subj_data['bold'] = group_multiecho(subj_data['bold'])
+    if any(['_echo-' in asl for asl in subj_data['asl']]):
+        subj_data['asl'] = group_multiecho(subj_data['asl'])
 
     return subj_data, layout
 

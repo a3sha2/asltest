@@ -490,12 +490,12 @@ def init_single_subject_wf(
         }
     else:
         subject_data = collect_data(layout, subject_id, task_id, echo_idx,
-                                    bids_filters=bids_filters)[0]
+                                    bids_filters=None)[0]
 
     # Make sure we always go through these two checks
     if not anat_only and subject_data['asl'] == []:
-        raise Exception("No BOLD images found for participant {} and task {}. "
-                        "All workflows require BOLD images.".format(
+        raise Exception("No ASL images found for participant {} and task {}. "
+                        "All workflows require ASL images.".format(
                             subject_id, task_id if task_id else '<all>'))
 
     if not subject_data['t1w']:
@@ -586,7 +586,7 @@ It is released under the [CC0]\
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t1w', 't1w'),
                             ('t2w', 't2w'),
-                            ('asl', 'asl')]),
+                            ('bold', 'bold')]),
         (bids_info, summary, [('subject', 'subject_id')]),
         (bids_info, anat_preproc_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
         (bidssrc, anat_preproc_wf, [('t1w', 'inputnode.t1w'),

@@ -484,7 +484,7 @@ def build_workflow(opts, retval):
     a hard-limited memory-scope.
 
     """
-    from bids import BIDSLayout
+    from ..pybids import BIDSLayout
 
     from nipype import logging as nlogging, config as ncfg
     from ..niworkflows.utils.bids import collect_participants, check_pipeline_version
