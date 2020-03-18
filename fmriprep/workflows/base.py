@@ -486,14 +486,14 @@ def init_single_subject_wf(
         # for documentation purposes
         subject_data = {
             't1w': ['/completely/made/up/path/sub-01_T1w.nii.gz'],
-            'bold': ['/completely/made/up/path/sub-01_task-nback_bold.nii.gz']
+            'asl': ['/completely/made/up/path/sub-01_task-nback_bold.nii.gz']
         }
     else:
         subject_data = collect_data(layout, subject_id, task_id, echo_idx,
                                     bids_filters=bids_filters)[0]
 
     # Make sure we always go through these two checks
-    if not anat_only and subject_data['bold'] == []:
+    if not anat_only and subject_data['asl'] == []:
         raise Exception("No BOLD images found for participant {} and task {}. "
                         "All workflows require BOLD images.".format(
                             subject_id, task_id if task_id else '<all>'))
@@ -586,7 +586,7 @@ It is released under the [CC0]\
         (inputnode, summary, [('subjects_dir', 'subjects_dir')]),
         (bidssrc, summary, [('t1w', 't1w'),
                             ('t2w', 't2w'),
-                            ('bold', 'bold')]),
+                            ('asl', 'asl')]),
         (bids_info, summary, [('subject', 'subject_id')]),
         (bids_info, anat_preproc_wf, [(('subject', _prefix), 'inputnode.subject_id')]),
         (bidssrc, anat_preproc_wf, [('t1w', 'inputnode.t1w'),
@@ -607,7 +607,7 @@ It is released under the [CC0]\
     if anat_only:
         return workflow
 
-    for bold_file in subject_data['bold']:
+    for bold_file in subject_data['asl']:
         func_preproc_wf = init_func_preproc_wf(
             aroma_melodic_dim=aroma_melodic_dim,
             bold2t1w_dof=bold2t1w_dof,
@@ -624,7 +624,7 @@ It is released under the [CC0]\
             layout=layout,
             low_mem=low_mem,
             medial_surface_nan=medial_surface_nan,
-            num_bold=len(subject_data['bold']),
+            num_bold=len(subject_data['asl']),
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             reportlets_dir=reportlets_dir,
