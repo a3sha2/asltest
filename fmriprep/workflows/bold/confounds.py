@@ -42,9 +42,9 @@ from ...interfaces import (
 def init_bold_confs_wf(
     mem_gb,
     metadata,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
+    #regressors_all_comps,
+    #regressors_dvars_th,
+    #regressors_fd_th,
     name="bold_confs_wf",
 ):
     """
@@ -173,7 +173,7 @@ signals were expanded with the inclusion of temporal derivatives and
 quadratic terms for each [@confounds_satterthwaite_2013].
 Frames that exceeded a threshold of {fd} mm FD or {dv} standardised DVARS
 were annotated as motion outliers.
-""".format(fd=regressors_fd_th, dv=regressors_dvars_th)
+""".format(fd=0.1, dv=2)
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['bold', 'bold_mask', 'movpar_file', 'skip_vols',
                 't1w_mask', 't1w_tpms', 't1_bold_xform']),
@@ -181,32 +181,6 @@ were annotated as motion outliers.
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['confounds_file', 'confounds_metadata']),
         name='outputnode')
-
-    # Get masks ready in T1w space
-    acc_tpm = pe.Node(AddTPMs(indices=[0, 2]), name='tpms_add_csf_wm')  # acc stands for aCompCor
-    csf_roi = pe.Node(TPM2ROI(erode_mm=0, mask_erode_mm=30), name='csf_roi')
-    wm_roi = pe.Node(TPM2ROI(
-        erode_prop=0.6, mask_erode_prop=0.6**3),  # 0.6 = radius; 0.6^3 = volume
-        name='wm_roi')
-    acc_roi = pe.Node(TPM2ROI(
-        erode_prop=0.6, mask_erode_prop=0.6**3),  # 0.6 = radius; 0.6^3 = volume
-        name='acc_roi')
-
-    # Map ROIs in T1w space into BOLD space
-    csf_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
-                      name='csf_tfm', mem_gb=0.1)
-    wm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
-                     name='wm_tfm', mem_gb=0.1)
-    acc_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
-                      name='acc_tfm', mem_gb=0.1)
-    tcc_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
-                      name='tcc_tfm', mem_gb=0.1)
-
-    # Ensure ROIs don't go off-limits (reduced FoV)
-    csf_msk = pe.Node(niu.Function(function=_maskroi), name='csf_msk')
-    wm_msk = pe.Node(niu.Function(function=_maskroi), name='wm_msk')
-    acc_msk = pe.Node(niu.Function(function=_maskroi), name='acc_msk')
-    tcc_msk = pe.Node(niu.Function(function=_maskroi), name='tcc_msk')
 
     # DVARS
     dvars = pe.Node(nac.ComputeDVARS(save_nstd=True, save_std=True, remove_zerovariance=True),
@@ -216,39 +190,9 @@ were annotated as motion outliers.
     fdisp = pe.Node(nac.FramewiseDisplacement(parameter_source="SPM"),
                     name="fdisp", mem_gb=mem_gb)
 
-    # a/t-CompCor
-    mrg_lbl_cc = pe.Node(niu.Merge(3), name='merge_rois_cc', run_without_submitting=True)
-
-    tcompcor = pe.Node(
-        TCompCor(components_file='tcompcor.tsv', header_prefix='t_comp_cor_', pre_filter='cosine',
-                 save_pre_filter=True, save_metadata=True, percentile_threshold=.05,
-                 failure_mode='NaN'),
-        name="tcompcor", mem_gb=mem_gb)
-
-    acompcor = pe.Node(
-        ACompCor(components_file='acompcor.tsv', header_prefix='a_comp_cor_', pre_filter='cosine',
-                 save_pre_filter=True, save_metadata=True, mask_names=['combined', 'CSF', 'WM'],
-                 merge_method='none', failure_mode='NaN'),
-        name="acompcor", mem_gb=mem_gb)
-
-    # Set number of components
-    if regressors_all_comps:
-        acompcor.inputs.num_components = 'all'
-        tcompcor.inputs.num_components = 'all'
-    else:
-        acompcor.inputs.variance_threshold = 0.5
-        tcompcor.inputs.variance_threshold = 0.5
-
-    # Set TR if present
-    if 'RepetitionTime' in metadata:
-        tcompcor.inputs.repetition_time = metadata['RepetitionTime']
-        acompcor.inputs.repetition_time = metadata['RepetitionTime']
 
     # Global and segment regressors
     signals_class_labels = ["csf", "white_matter", "global_signal"]
-    mrg_lbl = pe.Node(niu.Merge(3), name='merge_rois', run_without_submitting=True)
-    signals = pe.Node(SignalExtraction(class_labels=signals_class_labels),
-                      name="signals", mem_gb=mem_gb)
 
     # Arrange confounds
     add_dvars_header = pe.Node(
@@ -262,165 +206,29 @@ were annotated as motion outliers.
         name="add_motion_headers", mem_gb=0.01, run_without_submitting=True)
     concat = pe.Node(GatherConfounds(), name="concat", mem_gb=0.01, run_without_submitting=True)
 
-    # CompCor metadata
-    tcc_metadata_fmt = pe.Node(
-        TSV2JSON(index_column='component', drop_columns=['mask'], output=None,
-                 additional_metadata={'Method': 'tCompCor'}, enforce_case=True),
-        name='tcc_metadata_fmt')
-    acc_metadata_fmt = pe.Node(
-        TSV2JSON(index_column='component', output=None,
-                 additional_metadata={'Method': 'aCompCor'}, enforce_case=True),
-        name='acc_metadata_fmt')
-    mrg_conf_metadata = pe.Node(niu.Merge(3), name='merge_confound_metadata',
-                                run_without_submitting=True)
-    mrg_conf_metadata.inputs.in3 = {label: {'Method': 'Mean'}
-                                    for label in signals_class_labels}
-    mrg_conf_metadata2 = pe.Node(DictMerge(), name='merge_confound_metadata2',
-                                 run_without_submitting=True)
+
 
     # Expand model to include derivatives and quadratics
-    model_expand = pe.Node(ExpandModel(
-        model_formula='(dd1(rps + wm + csf + gsr))^^2 + others'),
-        name='model_expansion')
-
-    # Add spike regressors
-    spike_regress = pe.Node(SpikeRegressors(
-        fd_thresh=regressors_fd_th,
-        dvars_thresh=regressors_dvars_th),
-        name='spike_regressors')
-
-    # Generate reportlet (ROIs)
-    mrg_compcor = pe.Node(niu.Merge(2), name='merge_compcor', run_without_submitting=True)
-    rois_plot = pe.Node(ROIsPlot(colors=['b', 'magenta'], generate_report=True),
-                        name='rois_plot', mem_gb=mem_gb)
-
-    ds_report_bold_rois = pe.Node(
-        DerivativesDataSink(desc='rois', keep_dtype=True),
-        name='ds_report_bold_rois', run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Generate reportlet (CompCor)
-    mrg_cc_metadata = pe.Node(niu.Merge(2), name='merge_compcor_metadata',
-                              run_without_submitting=True)
-    compcor_plot = pe.Node(
-        CompCorVariancePlot(variance_thresholds=(0.5, 0.7, 0.9),
-                            metadata_sources=['tCompCor', 'aCompCor']),
-        name='compcor_plot')
-    ds_report_compcor = pe.Node(
-        DerivativesDataSink(desc='compcorvar', keep_dtype=True),
-        name='ds_report_compcor', run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    # Generate reportlet (Confound correlation)
-    conf_corr_plot = pe.Node(
-        ConfoundsCorrelationPlot(reference_column='global_signal', max_dim=70),
-        name='conf_corr_plot')
-    ds_report_conf_corr = pe.Node(
-        DerivativesDataSink(desc='confoundcorr', keep_dtype=True),
-        name='ds_report_conf_corr', run_without_submitting=True,
-        mem_gb=DEFAULT_MEMORY_MIN_GB)
-
-    def _pick_csf(files):
-        return files[0]
-
-    def _pick_wm(files):
-        return files[-1]
 
     workflow.connect([
-        # Massage ROIs (in T1w space)
-        (inputnode, acc_tpm, [('t1w_tpms', 'in_files')]),
-        (inputnode, csf_roi, [(('t1w_tpms', _pick_csf), 'in_tpm'),
-                              ('t1w_mask', 'in_mask')]),
-        (inputnode, wm_roi, [(('t1w_tpms', _pick_wm), 'in_tpm'),
-                             ('t1w_mask', 'in_mask')]),
-        (inputnode, acc_roi, [('t1w_mask', 'in_mask')]),
-        (acc_tpm, acc_roi, [('out_file', 'in_tpm')]),
-        # Map ROIs to BOLD
-        (inputnode, csf_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
-        (csf_roi, csf_tfm, [('roi_file', 'input_image')]),
-        (inputnode, wm_tfm, [('bold_mask', 'reference_image'),
-                             ('t1_bold_xform', 'transforms')]),
-        (wm_roi, wm_tfm, [('roi_file', 'input_image')]),
-        (inputnode, acc_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
-        (acc_roi, acc_tfm, [('roi_file', 'input_image')]),
-        (inputnode, tcc_tfm, [('bold_mask', 'reference_image'),
-                              ('t1_bold_xform', 'transforms')]),
-        (csf_roi, tcc_tfm, [('eroded_mask', 'input_image')]),
-        # Mask ROIs with bold_mask
-        (inputnode, csf_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, wm_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, acc_msk, [('bold_mask', 'in_mask')]),
-        (inputnode, tcc_msk, [('bold_mask', 'in_mask')]),
         # connect inputnode to each non-anatomical confound node
         (inputnode, dvars, [('bold', 'in_file'),
                             ('bold_mask', 'in_mask')]),
         (inputnode, fdisp, [('movpar_file', 'in_file')]),
-
-        # tCompCor
-        (inputnode, tcompcor, [('bold', 'realigned_file')]),
-        (inputnode, tcompcor, [('skip_vols', 'ignore_initial_volumes')]),
-        (tcc_tfm, tcc_msk, [('output_image', 'roi_file')]),
-        (tcc_msk, tcompcor, [('out', 'mask_files')]),
-
-        # aCompCor
-        (inputnode, acompcor, [('bold', 'realigned_file')]),
-        (inputnode, acompcor, [('skip_vols', 'ignore_initial_volumes')]),
-        (acc_tfm, acc_msk, [('output_image', 'roi_file')]),
-        (acc_msk, mrg_lbl_cc, [('out', 'in1')]),
-        (csf_msk, mrg_lbl_cc, [('out', 'in2')]),
-        (wm_msk, mrg_lbl_cc, [('out', 'in3')]),
-        (mrg_lbl_cc, acompcor, [('out', 'mask_files')]),
-
-        # Global signals extraction (constrained by anatomy)
-        (inputnode, signals, [('bold', 'in_file')]),
-        (csf_tfm, csf_msk, [('output_image', 'roi_file')]),
-        (csf_msk, mrg_lbl, [('out', 'in1')]),
-        (wm_tfm, wm_msk, [('output_image', 'roi_file')]),
-        (wm_msk, mrg_lbl, [('out', 'in2')]),
-        (inputnode, mrg_lbl, [('bold_mask', 'in3')]),
-        (mrg_lbl, signals, [('out', 'label_files')]),
-
         # Collate computed confounds together
         (inputnode, add_motion_headers, [('movpar_file', 'in_file')]),
         (dvars, add_dvars_header, [('out_nstd', 'in_file')]),
         (dvars, add_std_dvars_header, [('out_std', 'in_file')]),
-        (signals, concat, [('out_file', 'signals')]),
         (fdisp, concat, [('out_file', 'fd')]),
-        (tcompcor, concat, [('components_file', 'tcompcor'),
-                            ('pre_filter_file', 'cos_basis')]),
-        (acompcor, concat, [('components_file', 'acompcor')]),
         (add_motion_headers, concat, [('out_file', 'motion')]),
         (add_dvars_header, concat, [('out_file', 'dvars')]),
         (add_std_dvars_header, concat, [('out_file', 'std_dvars')]),
 
-        # Confounds metadata
-        (tcompcor, tcc_metadata_fmt, [('metadata_file', 'in_file')]),
-        (acompcor, acc_metadata_fmt, [('metadata_file', 'in_file')]),
-        (tcc_metadata_fmt, mrg_conf_metadata, [('output', 'in1')]),
-        (acc_metadata_fmt, mrg_conf_metadata, [('output', 'in2')]),
-        (mrg_conf_metadata, mrg_conf_metadata2, [('out', 'in_dicts')]),
-
         # Expand the model with derivatives, quadratics, and spikes
-        (concat, model_expand, [('confounds_file', 'confounds_file')]),
-        (model_expand, spike_regress, [('confounds_file', 'confounds_file')]),
 
         # Set outputs
-        (spike_regress, outputnode, [('confounds_file', 'confounds_file')]),
-        (mrg_conf_metadata2, outputnode, [('out_dict', 'confounds_metadata')]),
-        (inputnode, rois_plot, [('bold', 'in_file'),
-                                ('bold_mask', 'in_mask')]),
-        (tcompcor, mrg_compcor, [('high_variance_masks', 'in1')]),
-        (acc_msk, mrg_compcor, [('out', 'in2')]),
-        (mrg_compcor, rois_plot, [('out', 'in_rois')]),
-        (rois_plot, ds_report_bold_rois, [('out_report', 'in_file')]),
-        (tcompcor, mrg_cc_metadata, [('metadata_file', 'in1')]),
-        (acompcor, mrg_cc_metadata, [('metadata_file', 'in2')]),
-        (mrg_cc_metadata, compcor_plot, [('out', 'metadata_files')]),
-        (compcor_plot, ds_report_compcor, [('out_file', 'in_file')]),
-        (concat, conf_corr_plot, [('confounds_file', 'confounds_file')]),
-        (conf_corr_plot, ds_report_conf_corr, [('out_file', 'in_file')]),
+        (concat, outputnode, [('confounds_file', 'confounds_file')]),
+    
     ])
 
     return workflow
@@ -489,9 +297,6 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
     conf_plot = pe.Node(FMRISummary(
         tr=metadata['RepetitionTime'],
         confounds_list=[
-            ('global_signal', None, 'GS'),
-            ('csf', None, 'GSCSF'),
-            ('white_matter', None, 'GSWM'),
             ('std_dvars', None, 'DVARS'),
             ('framewise_displacement', 'mm', 'FD')]),
         name='conf_plot', mem_gb=mem_gb)

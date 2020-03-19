@@ -21,7 +21,7 @@ def init_func_derivatives_wf(
     metadata,
     output_dir,
     spaces,
-    use_aroma,
+    #use_aroma,
     name='func_derivatives_wf',
 ):
     """
@@ -153,33 +153,33 @@ def init_func_derivatives_wf(
                 (inputnode, ds_bold_aparc_t1, [('source_file', 'source_file'),
                                                ('bold_aparc_t1', 'in_file')]),
             ])
+#"""
+    #if use_aroma:
+        #ds_aroma_noise_ics = pe.Node(DerivativesDataSink(
+         #   base_directory=output_dir, suffix='AROMAnoiseICs'),
+          #  name="ds_aroma_noise_ics", run_without_submitting=True,
+           # mem_gb=DEFAULT_MEMORY_MIN_GB)
+        #ds_melodic_mix = pe.Node(DerivativesDataSink(
+         #   base_directory=output_dir, desc='MELODIC', suffix='mixing'),
+          #  name="ds_melodic_mix", run_without_submitting=True,
+          #  mem_gb=DEFAULT_MEMORY_MIN_GB)
+        #ds_aroma_std = pe.Node(
+        #    DerivativesDataSink(base_directory=output_dir, space='MNI152NLin6Asym',
+        #                        desc='smoothAROMAnonaggr', keep_dtype=True),
+        #    name='ds_aroma_std', run_without_submitting=True,
+        #   mem_gb=DEFAULT_MEMORY_MIN_GB)
 
-    if use_aroma:
-        ds_aroma_noise_ics = pe.Node(DerivativesDataSink(
-            base_directory=output_dir, suffix='AROMAnoiseICs'),
-            name="ds_aroma_noise_ics", run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
-        ds_melodic_mix = pe.Node(DerivativesDataSink(
-            base_directory=output_dir, desc='MELODIC', suffix='mixing'),
-            name="ds_melodic_mix", run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
-        ds_aroma_std = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, space='MNI152NLin6Asym',
-                                desc='smoothAROMAnonaggr', keep_dtype=True),
-            name='ds_aroma_std', run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        #workflow.connect([
+        #    (inputnode, ds_aroma_noise_ics, [('source_file', 'source_file'),
+        #                                     ('aroma_noise_ics', 'in_file')]),
+        #    (inputnode, ds_melodic_mix, [('source_file', 'source_file'),
+        #                                 ('melodic_mix', 'in_file')]),
+        #    (inputnode, ds_aroma_std, [('source_file', 'source_file'),
+        #                               ('nonaggr_denoised_file', 'in_file')]),
+        #])
 
-        workflow.connect([
-            (inputnode, ds_aroma_noise_ics, [('source_file', 'source_file'),
-                                             ('aroma_noise_ics', 'in_file')]),
-            (inputnode, ds_melodic_mix, [('source_file', 'source_file'),
-                                         ('melodic_mix', 'in_file')]),
-            (inputnode, ds_aroma_std, [('source_file', 'source_file'),
-                                       ('nonaggr_denoised_file', 'in_file')]),
-        ])
-
-    if getattr(spaces, '_cached') is None:
-        return workflow
+    #if getattr(spaces, '_cached') is None:
+    #    return workflow
 
     # Store resamplings in standard spaces when listed in --output-spaces
     if spaces.cached.references:

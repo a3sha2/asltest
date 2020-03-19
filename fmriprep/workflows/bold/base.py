@@ -47,13 +47,13 @@ LOGGER = logging.getLogger('nipype.workflow')
 
 
 def init_func_preproc_wf(
-    aroma_melodic_dim,
+    #aroma_melodic_dim,
     bold2t1w_dof,
     bold_file,
     cifti_output,
     debug,
     dummy_scans,
-    err_on_aroma_warn,
+    #err_on_aroma_warn,
     fmap_bspline,
     fmap_demean,
     force_syn,
@@ -63,13 +63,13 @@ def init_func_preproc_wf(
     medial_surface_nan,
     omp_nthreads,
     output_dir,
-    regressors_all_comps,
-    regressors_dvars_th,
-    regressors_fd_th,
+    #regressors_all_comps,
+    #regressors_dvars_th,
+    #regressors_fd_th,
     reportlets_dir,
     spaces,
     t2s_coreg,
-    use_aroma,
+    #use_aroma,
     use_bbr,
     use_syn,
     layout=None,
@@ -432,7 +432,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         metadata=metadata,
         output_dir=output_dir,
         spaces=spaces,
-        use_aroma=use_aroma,
+        #use_aroma=use_aroma,
     )
 
     workflow.connect([
@@ -445,9 +445,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('bold_native', 'inputnode.bold_native'),
             ('confounds', 'inputnode.confounds'),
             ('surfaces', 'inputnode.surf_files'),
-            ('aroma_noise_ics', 'inputnode.aroma_noise_ics'),
-            ('melodic_mix', 'inputnode.melodic_mix'),
-            ('nonaggr_denoised_file', 'inputnode.nonaggr_denoised_file'),
+            #('aroma_noise_ics', 'inputnode.aroma_noise_ics'),
+            #('melodic_mix', 'inputnode.melodic_mix'),
+            #('nonaggr_denoised_file', 'inputnode.nonaggr_denoised_file'),
             ('bold_cifti', 'inputnode.bold_cifti'),
             ('cifti_variant', 'inputnode.cifti_variant'),
             ('cifti_metadata', 'inputnode.cifti_metadata'),
@@ -495,9 +495,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     bold_confounds_wf = init_bold_confs_wf(
         mem_gb=mem_gb['largemem'],
         metadata=metadata,
-        regressors_all_comps=regressors_all_comps,
-        regressors_fd_th=regressors_fd_th,
-        regressors_dvars_th=regressors_dvars_th,
+        #regressors_all_comps=regressors_all_comps,
+        #regressors_fd_th=regressors_fd_th,
+        #regressors_dvars_th=regressors_dvars_th,
         name='bold_confounds_wf')
     bold_confounds_wf.get_node('inputnode').inputs.t1_transform_flags = [False]
 
@@ -861,60 +861,61 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ]),
         ])
 
-        if use_aroma:  # ICA-AROMA workflow
-            from .confounds import init_ica_aroma_wf
-            ica_aroma_wf = init_ica_aroma_wf(
-                mem_gb=mem_gb['resampled'],
-                metadata=metadata,
-                omp_nthreads=omp_nthreads,
-                use_fieldwarp=bool(fmaps),
-                err_on_aroma_warn=err_on_aroma_warn,
-                aroma_melodic_dim=aroma_melodic_dim,
-                name='ica_aroma_wf')
+        #if use_aroma:  # ICA-AROMA workflow
+            #rom .confounds import init_ica_aroma_wf
+            #ica_aroma_wf = init_ica_aroma_wf(
+               # mem_gb=mem_gb['resampled'],
+                #metadata=metadata,
+                #omp_nthreads=omp_nthreads,
+                #use_fieldwarp=bool(fmaps),
+                #err_on_aroma_warn=err_on_aroma_warn,
+                #aroma_melodic_dim=aroma_melodic_dim,
+                #name='ica_aroma_wf')
 
-            join = pe.Node(niu.Function(output_names=["out_file"],
-                                        function=_to_join),
-                           name='aroma_confounds')
+            #join = pe.Node(niu.Function(output_names=["out_file"],
+                                        #function=_to_join),
+                           #name='aroma_confounds')
 
-            mrg_conf_metadata = pe.Node(niu.Merge(2), name='merge_confound_metadata',
-                                        run_without_submitting=True)
-            mrg_conf_metadata2 = pe.Node(DictMerge(), name='merge_confound_metadata2',
-                                         run_without_submitting=True)
-            workflow.disconnect([
-                (bold_confounds_wf, outputnode, [
-                    ('outputnode.confounds_file', 'confounds'),
-                ]),
-                (bold_confounds_wf, outputnode, [
-                    ('outputnode.confounds_metadata', 'confounds_metadata'),
-                ]),
-            ])
-            workflow.connect([
-                (inputnode, ica_aroma_wf, [
-                    ('bold_file', 'inputnode.name_source')]),
-                (bold_hmc_wf, ica_aroma_wf, [
-                    ('outputnode.movpar_file', 'inputnode.movpar_file')]),
-                (bold_reference_wf, ica_aroma_wf, [
-                    ('outputnode.skip_vols', 'inputnode.skip_vols')]),
-                (bold_confounds_wf, join, [
-                    ('outputnode.confounds_file', 'in_file')]),
-                (bold_confounds_wf, mrg_conf_metadata,
-                    [('outputnode.confounds_metadata', 'in1')]),
-                (ica_aroma_wf, join,
-                    [('outputnode.aroma_confounds', 'join_file')]),
-                (ica_aroma_wf, mrg_conf_metadata,
-                    [('outputnode.aroma_metadata', 'in2')]),
-                (mrg_conf_metadata, mrg_conf_metadata2, [('out', 'in_dicts')]),
-                (ica_aroma_wf, outputnode,
-                    [('outputnode.aroma_noise_ics', 'aroma_noise_ics'),
-                     ('outputnode.melodic_mix', 'melodic_mix'),
-                     ('outputnode.nonaggr_denoised_file', 'nonaggr_denoised_file')]),
-                (join, outputnode, [('out_file', 'confounds')]),
-                (mrg_conf_metadata2, outputnode, [('out_dict', 'confounds_metadata')]),
-                (bold_std_trans_wf, ica_aroma_wf, [
-                    ('outputnode.bold_std', 'inputnode.bold_std'),
-                    ('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
-                    ('outputnode.spatial_reference', 'inputnode.spatial_reference')]),
-            ])
+            #mrg_conf_metadata = pe.Node(niu.Merge(2), name='merge_confound_metadata',
+                                        #run_without_submitting=True)
+            #mrg_conf_metadata2 = pe.Node(DictMerge(), name='merge_confound_metadata2',
+                                         #run_without_submitting=True)
+            #workflow.disconnect([
+                #(bold_confounds_wf, outputnode, [
+                    #('outputnode.confounds_file', 'confounds'),
+                #]),
+                #(bold_confounds_wf, outputnode, [
+                    #('outputnode.confounds_metadata', 'confounds_metadata'),
+               # ]),
+            #])
+           
+            #workflow.connect([
+                #(inputnode, ica_aroma_wf, [
+                    #('bold_file', 'inputnode.name_source')]),
+                #(bold_hmc_wf, ica_aroma_wf, [
+                    #('outputnode.movpar_file', 'inputnode.movpar_file')]),
+                #(bold_reference_wf, ica_aroma_wf, [
+                    #('outputnode.skip_vols', 'inputnode.skip_vols')]),
+                #(bold_confounds_wf, join, [
+                    #('outputnode.confounds_file', 'in_file')]),
+                #(bold_confounds_wf, mrg_conf_metadata,
+                    #[('outputnode.confounds_metadata', 'in1')]),
+                #(ica_aroma_wf, join,
+                    #[('outputnode.aroma_confounds', 'join_file')]),
+                #(ica_aroma_wf, mrg_conf_metadata,
+                    #[('outputnode.aroma_metadata', 'in2')]),
+                #(mrg_conf_metadata, mrg_conf_metadata2, [('out', 'in_dicts')]),
+                #(ica_aroma_wf, outputnode,
+                    #[('outputnode.aroma_noise_ics', 'aroma_noise_ics'),
+                     #('outputnode.melodic_mix', 'melodic_mix'),
+                     #('outputnode.nonaggr_denoised_file', 'nonaggr_denoised_file')]),
+                #(join, outputnode, [('out_file', 'confounds')]),
+                #(mrg_conf_metadata2, outputnode, [('out_dict', 'confounds_metadata')]),
+                #(bold_std_trans_wf, ica_aroma_wf, [
+                    #('outputnode.bold_std', 'inputnode.bold_std'),
+                    #('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
+                    #('outputnode.spatial_reference', 'inputnode.spatial_reference')]),
+            #])
 
     # SURFACES ##################################################################################
     # Freesurfer

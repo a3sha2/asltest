@@ -106,10 +106,10 @@ def get_parser():
     g_perfm.add_argument('--md-only-boilerplate', action='store_true',
                          default=False,
                          help='skip generation of HTML and LaTeX formatted citation with pandoc')
-    g_perfm.add_argument('--error-on-aroma-warnings', action='store_true',
-                         default=False,
-                         help='Raise an error if ICA_AROMA does not produce sensible output '
-                              '(e.g., if all the components are classified as signal or noise)')
+    #g_perfm.add_argument('--error-on-aroma-warnings', action='store_true',
+                        # default=False,
+                         #help='Raise an error if ICA_AROMA does not produce sensible output '
+                              #'(e.g., if all the components are classified as signal or noise)')
     g_perfm.add_argument("-v", "--verbose", dest="verbose_count", action="count", default=0,
                          help="increases log verbosity for each occurence, debug level is -vvv")
 
@@ -161,29 +161,29 @@ https://fmriprep.readthedocs.io/en/%s/spaces.html""" % (currentv.base_version
         help='Number of non steady state volumes.')
 
     # ICA_AROMA options
-    g_aroma = parser.add_argument_group('Specific options for running ICA_AROMA')
-    g_aroma.add_argument('--use-aroma', action='store_true', default=False,
-                         help='add ICA_AROMA to your preprocessing stream')
-    g_aroma.add_argument('--aroma-melodic-dimensionality', action='store',
-                         default=-200, type=int,
-                         help='Exact or maximum number of MELODIC components to estimate '
-                         '(positive = exact, negative = maximum)')
+    #g_aroma = parser.add_argument_group('Specific options for running ICA_AROMA')
+    #g_aroma.add_argument('--use-aroma', action='store_true', default=False,
+                         #help='add ICA_AROMA to your preprocessing stream')
+    #g_aroma.add_argument('--aroma-melodic-dimensionality', action='store',
+                         #default=-200, type=int,
+                         #help='Exact or maximum number of MELODIC components to estimate '
+                         #'(positive = exact, negative = maximum)')
 
     # Confounds options
-    g_confounds = parser.add_argument_group('Specific options for estimating confounds')
-    g_confounds.add_argument(
-        '--return-all-components', required=False, action='store_true', default=False,
-        help='Include all components estimated in CompCor decomposition in the confounds '
-             'file instead of only the components sufficient to explain 50 percent of '
-             'BOLD variance in each CompCor mask')
-    g_confounds.add_argument(
-        '--fd-spike-threshold', required=False, action='store', default=0.5, type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of framewise '
-             'displacement')
-    g_confounds.add_argument(
-        '--dvars-spike-threshold', required=False, action='store', default=1.5, type=float,
-        help='Threshold for flagging a frame as an outlier on the basis of standardised '
-             'DVARS')
+   # g_confounds = parser.add_argument_group('Specific options for estimating confounds')
+    #g_confounds.add_argument(
+        #'--return-all-components', required=False, action='store_true', default=False,
+        #help='Include all components estimated in CompCor decomposition in the confounds '
+             #'file instead of only the components sufficient to explain 50 percent of '
+             #'BOLD variance in each CompCor mask')
+   # g_confounds.add_argument(
+        #'--fd-spike-threshold', required=False, action='store', default=0.5, type=float,
+        #help='Threshold for flagging a frame as an outlier on the basis of framewise '
+             #'displacement')
+    #g_confounds.add_argument(
+        #'--dvars-spike-threshold', required=False, action='store', default=1.5, type=float,
+        #help='Threshold for flagging a frame as an outlier on the basis of standardised '
+             #'DVARS')
 
     #  ANTs options
     g_ants = parser.add_argument_group('Specific options for ANTs registrations')
@@ -648,13 +648,13 @@ def build_workflow(opts, retval):
 
     retval['workflow'] = init_fmriprep_wf(
         anat_only=opts.anat_only,
-        aroma_melodic_dim=opts.aroma_melodic_dimensionality,
+        #aroma_melodic_dim=opts.aroma_melodic_dimensionality,
         bold2t1w_dof=opts.bold2t1w_dof,
         cifti_output=opts.cifti_output,
         debug=opts.sloppy,
         dummy_scans=opts.dummy_scans,
         echo_idx=opts.echo_idx,
-        err_on_aroma_warn=opts.error_on_aroma_warnings,
+        #err_on_aroma_warn=opts.error_on_aroma_warnings,
         fmap_bspline=opts.fmap_bspline,
         fmap_demean=opts.fmap_no_demean,
         force_syn=opts.force_syn,
@@ -669,16 +669,16 @@ def build_workflow(opts, retval):
         omp_nthreads=omp_nthreads,
         output_dir=str(output_dir),
         run_uuid=run_uuid,
-        regressors_all_comps=opts.return_all_components,
-        regressors_fd_th=opts.fd_spike_threshold,
-        regressors_dvars_th=opts.dvars_spike_threshold,
+        #regressors_all_comps=opts.return_all_components,
+        #regressors_fd_th=opts.fd_spike_threshold,
+        #regressors_dvars_th=opts.dvars_spike_threshold,
         skull_strip_fixed_seed=opts.skull_strip_fixed_seed,
         skull_strip_template=opts.skull_strip_template[0],
         spaces=parse_spaces(opts),
         subject_list=subject_list,
         t2s_coreg=opts.t2s_coreg,
         task_id=opts.task_id,
-        use_aroma=opts.use_aroma,
+        #use_aroma=opts.use_aroma,
         use_bbr=opts.use_bbr,
         use_syn=opts.use_syn_sdc,
         work_dir=str(work_dir),
@@ -724,9 +724,9 @@ def parse_spaces(opts):
     if not spaces.is_cached():  # spaces may be already checkpointed if users want no BOLD outputs
         spaces.checkpoint()
 
-    if opts.use_aroma:
+    #if opts.use_aroma:
         # Make sure there's a normalization to FSL for AROMA to use.
-        spaces.add(('MNI152NLin6Asym', {'res': '2'}))
+       # spaces.add(('MNI152NLin6Asym', {'res': '2'}))
 
     if opts.cifti_output:
         # CIFTI grayordinates to corresponding FSL-MNI resolutions.
