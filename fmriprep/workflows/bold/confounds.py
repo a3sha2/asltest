@@ -192,7 +192,7 @@ were annotated as motion outliers.
 
 
     # Global and segment regressors
-    signals_class_labels = ["csf", "white_matter", "global_signal"]
+    #signals_class_labels = ["csf", "white_matter", "global_signal"]
 
     # Arrange confounds
     add_dvars_header = pe.Node(
