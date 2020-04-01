@@ -21,12 +21,12 @@ class _extractCBFInputSpec(BaseInterfaceInputSpec):
                               desc='preprocessed file')
     in_ASLcontext = File(exists=True, mandatory=True,
               desc='ASL conext text tsv file with label and control')
-    out_file=File(exists=False,mandatory=True,desc='cbf timeries data')
-    out_avg=File(exists=False,mandatory=True,desc='average control')
+    out_file=File(exists=False,mandatory=False,desc='cbf timeries data')
+    out_avg=File(exists=False,mandatory=False,desc='average control')
 
 class _extractCBFOutputSpec(TraitedSpec):
-    out_file = File(exists=True, desc='cbf timeries data')
-    out_avg = File(exists=True, desc='average control')
+    out_file = File(exists=False, desc='cbf timeries data')
+    out_avg = File(exists=False, desc='average control')
 
 
 class extractCBF(SimpleInterface):
@@ -68,6 +68,9 @@ class extractCBF(SimpleInterface):
             avg_control, allasl.affine, allasl.header).to_filename(
             self._results['out_avg'])
 
+        self.inputs.out_file=os.path.abspath(self._results['out_file'])
+        self.inputs.out_avg=os.path.abspath(self._results['out_avg'])
+
         return runtime
 
 
@@ -81,15 +84,15 @@ class _computeCBFInputSpec(BaseInterfaceInputSpec):
               desc='metadata for CBF ')
     in_m0file = File(exists=True, mandatory=False,
               desc='M0 nifti file')
-    out_cbf=File(exists=False,mandatory=True,desc='cbf timeries data')
-    out_mean=File(exists=False,mandatory=True,desc='average control')
+    out_cbf=File(exists=False,mandatory=False,desc='cbf timeries data')
+    out_mean=File(exists=False,mandatory=False,desc='average control')
     out_att=File(exists=False,mandatory=False,desc='Arterial Transit Time')
     
 
 class _computeCBFOutputSpec(TraitedSpec):
-    out_cbf=File(exists=False,mandatory=True,desc='cbf timeries data')
-    out_mean=File(exists=False,mandatory=True,desc='average control')
-    out_att=File(exists=False,mandatory=False,desc='Arterial Transit Time')
+    out_cbf=File(exists=False,desc='cbf timeries data')
+    out_mean=File(exists=False,desc='average control')
+    out_att=File(exists=False,desc='Arterial Transit Time')
 
 
 
@@ -168,9 +171,9 @@ class computeCBF(SimpleInterface):
             cbf=cbf1*perfusion_factor
         ## cbf is timeseries
         meancbf=np.mean(cbf,axis=3)
-        self._results['out_cbf'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_cbf'] = fname_presuffix(self.inputs.in_cbf,
                                                    suffix='_cbf', newpath=runtime.cwd)
-        self._results['out_mean'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_mean'] = fname_presuffix(self.inputs.in_cbf,
                                                    suffix='_meancbf', newpath=runtime.cwd)
         samplecbf=nb.load(self.inputs.in_cbf)
         nb.Nifti1Image(
@@ -180,11 +183,16 @@ class computeCBF(SimpleInterface):
             meancbf, samplecbf.affine, samplecbf.header).to_filename(
             self._results['out_mean'])
         if att is not None:
-            self._results['out_att'] = fname_presuffix(self.inputs.in_file,
+            self._results['out_att'] = fname_presuffix(self.inputs.in_cbf,
                                                    suffix='_att', newpath=runtime.cwd)
             nb.Nifti1Image(
             att, samplecbf.affine, samplecbf.header).to_filename(
             self._results['out_att'])
+            self.inputs.out_att=os.path.abspath(self._results['out_att'])
+        
+        self.inputs.out_cbf=os.path.abspath(self._results['out_cbf'])
+        self.inputs.out_mean=os.path.abspath(self._results['out_mean'])
+       
         
         return runtime
 
@@ -201,10 +209,10 @@ class _scorescrubCBFInputSpec(BaseInterfaceInputSpec):
     in_wfun=traits.Str(exists=True,mandatory=False,default_value='huber',
               option=['bisquare','andrews','cauchy','fair','logistics','ols','talwar','welsch'],
                desc='wavelet fun ')
-    out_score=File(exists=False,mandatory=True,desc='score timeseries data')
-    out_avgscore=File(exists=False,mandatory=True,desc='average score')
-    out_scrub=File(exists=False,mandatory=True,desc='average scrub')
-    out_scoreindex=File(exists=False,mandatory=True,desc='index of volume remove or leave by score')
+    out_score=File(exists=False,desc='score timeseries data')
+    out_avgscore=File(exists=False,desc='average score')
+    out_scrub=File(exists=False,desc='average scrub')
+    out_scoreindex=File(exists=False,desc='index of volume remove or leave by score')
 
 class _scorescrubCBFOutputSpec(TraitedSpec):
     out_score=File(exists=True,mandatory=True,desc='score timeseries data')
@@ -232,13 +240,14 @@ class scorescrubCBF(SimpleInterface):
         cbfscrub=_scrubcbf(cbf_ts=cbf_scorets,gm=greym,wm=whitem,csf=csf,mask=mask,
                           wfun=self.inputs.in_wfun,thresh=self.inputs.in_thresh)
         
-        self._results['out_score'] = fname_presuffix(self.inputs.out_file,
+        self._results['out_score'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_cbfscorets', newpath=runtime.cwd)
-        self._results['out_avgscore'] = fname_presuffix(self.inputs.out_file,
+        self._results['out_avgscore'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_meancbfscore', newpath=runtime.cwd)
-        self._results['out_scrub'] = fname_presuffix(self.inputs.out_file,
+        self._results['out_scrub'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_cbfscrub', newpath=runtime.cwd)
-        self._results['out_scoreindex'] =runtime.cwd+'/scorescrub.txt'
+        self._results['out_scoreindex'] =  fname_presuffix(self.inputs.in_file,
+                                                   suffix='_scoreindex.txt', newpath=runtime.cwd,use_ext=False)
                                                    
         samplecbf=nb.load(self.inputs.in_mask)
         nb.Nifti1Image(
@@ -251,6 +260,11 @@ class scorescrubCBF(SimpleInterface):
             cbfscrub, samplecbf.affine, samplecbf.header).to_filename(
             self._results['out_scrub'])
         np.savetxt(self._results['out_scoreindex'],index_score, delimiter=',')
+
+        self.inputs.out_score=os.path.abspath(self._results['out_score'])
+        self.inputs.out_avgscore=os.path.abspath(self._results['out_avgscore'])
+        self.inputs.out_scrub=os.path.abspath(self._results['out_scrub'])
+        self.inputs.out_scoreindex=os.path.abspath(self._results['out_scoreindex'])
         return runtime
 
 def _weightfun(x,wfun='huber'):
@@ -458,13 +472,16 @@ class _BASILCBFInputSpec(FSLCommandInputSpec):
     pvc=traits.Bool(desc='calibration of asl',mandatory=False,argstr=" --pvcorr ",default_value=True)
     pvgm=File(exists=True,mandatory=False,desc='grey matter probablity matter ',argstr=" --pvgm %s ",)
     pvwm=File(exists=True,mandatory=False,desc='white matter probablity matter ',argstr=" --pvwm %s ",)
-    out_basename=File(desc="base name of output files", argstr=" -o %s ",mandatory=True,) 
+    out_basename=File(desc="base name of output files", argstr=" -o %s ",mandatory=True) 
+    out_cbfb=File(exists=False,desc='cbf with spatial correction')
+    out_cbfpv=File(exists=False,desc='cbf with spatial correction')
+    out_attb=File(exists=False,desc='aretrial transist time')
     #environ=traits.Str('FSLOUTPUTTYPE': 'NIFTI_GZ'}
 
 class _BASILCBFOutputSpec(TraitedSpec):
-    out_cbfb=File(exists=False,mandatory=True,desc='cbf with spatial correction')
-    out_cbfpv=File(exists=False,mandatory=False,desc='cbf with spatial correction')
-    out_attb=File(exists=False,mandatory=False,desc='aretrial transist time')
+    out_cbfb=File(exists=False,desc='cbf with spatial correction')
+    out_cbfpv=File(exists=False,desc='cbf with spatial correction')
+    out_attb=File(exists=False,desc='aretrial transist time')
    
 class BASILCBF(FSLCommand):
     _cmd = " oxford_asl "
@@ -478,16 +495,20 @@ class BASILCBF(FSLCommand):
             shutil.rmtree(self.inputs.out_basename+'/calib')    
         runtime = super(BASILCBF, self)._run_interface(runtime)
         outputs = self.input_spec().get()
-        outputs["out_cbfb"]=self.inputs.out_basename+'/basilcbf.nii.gz'
+        #outputs["out_cbfb"]=self.inputs.out_basename+'/basilcbf.nii.gz'
+        outputs["out_cbfb"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasil', newpath=runtime.cwd)
         from shutil import copyfile
-        copyfile(self.inputs.out_basename+'/native_space/perfusion_calib.nii.gz',outputs["out_cbf"])
+        copyfile(self.inputs.out_basename+'/native_space/perfusion_calib.nii.gz',outputs["out_cbfb"])
         if len(np.array([self.inputs.tis])) > 1:
-            outputs["out_att"]=self.inputs.out_basename+'/arrivaltime.nii.gz'
+            #outputs["out_att"]=self.inputs.out_basename+'/arrivaltime.nii.gz'
+            outputs["out_att"]=fname_presuffix(self.inputs.in_file,suffix='_arrivaltime', newpath=runtime.cwd)
             copyfile(self.inputs.out_basename+'/native_space/arrival.nii.gz',outputs["out_att"])
+            self.inputs.out_att=os.path.abspath(outputs["out_att"])
         else:
             outputs["out_attb"]=Undefined
         if self.inputs.pvc:
-            outputs["out_cbfpv"]=self.inputs.out_basename+'/basilcbfpv.nii.gz'
+            #outputs["out_cbfpv"]=self.inputs.out_basename+'/basilcbfpv.nii.gz'
+            outputs["out_cbfpv"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasilpv', newpath=runtime.cwd)
             copyfile(self.inputs.out_basename+'/native_space/pvcorr/perfusion_calib.nii.gz',outputs["out_cbfpv"])
         else:
             outputs["out_cbfpv"]=Undefined  
@@ -495,6 +516,9 @@ class BASILCBF(FSLCommand):
              self.raise_exception(runtime)
         shutil.rmtree(self.inputs.out_basename+'/native_space')
         shutil.rmtree(self.inputs.out_basename+'/calib')
+
+        self.inputs.out_cbfb=os.path.abspath(outputs["out_cbfb"])
+        self.inputs.out_cbfpv=os.path.abspath(outputs["out_cbfpv"])
         return runtime
 
     

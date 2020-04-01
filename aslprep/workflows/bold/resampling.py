@@ -29,6 +29,7 @@ from ...niworkflows.interfaces.surf import GiftiSetAnatomicalStructure
 from ...niworkflows.interfaces.nilearn import Merge
 from ...niworkflows.utils.spaces import format_reference
 from ...niworkflows.func.util import init_bold_reference_wf
+from ...niworkflows.utils.misc import get_template_specs
 
 from ...config import DEFAULT_MEMORY_MIN_GB
 from ...interfaces import DerivativesDataSink
@@ -789,7 +790,7 @@ def _split_spec(in_target):
 
 
 def _select_template(template):
-    from ...niworkflows.utils.misc import get_template_specs
+    from niworkflows.utils.misc import get_template_specs
     template, specs = template
     template = template.split(':')[0]  # Drop any cohort modifier if present
     specs = specs.copy()

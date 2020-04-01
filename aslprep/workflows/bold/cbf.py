@@ -39,22 +39,22 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
     gm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
                      name='gm_tfm', mem_gb=0.1)
 
-    extractcbf = pe.Node(extractCBF(in_ASLcontext=aslcontext),mem_gb=0.2, 
-             run_without_submitting=True,name="extractcbf") 
+    extractcbf = pe.Node(extractCBF(in_ASLcontext=aslcontext),mem_gb=0.2,run_without_submitting=True,name="extractcbf") 
     computecbf = pe.Node( computeCBF(in_metadata=metadata),mem_gb=0.2,
               run_without_submitting=True,name="computecbf")
     scorescrub= pe.Node(scorescrubCBF(in_thresh=0.7,in_wfun='huber'),
               name='scorescrub',run_without_submitting=True,mem_gb=0.2)
     basilcbf= pe.Node(BASILCBF(m0scale=metadata["M0"],
-               bolus=metadata["InitialPostLabelDelay"],pvc=True,
+               bolus=metadata["InitialPostLabelDelay"],m0tr=metadata['RepetitionTime'],pvc=True,
                tis=np.add(metadata["InitialPostLabelDelay"],metadata["LabelingDuration"]),
                pcasl=pcasl,out_basename=os.getcwd()),
               name='basilcbf',run_without_submitting=True,mem_gb=0.2) 
 
     
-    def _getTR(file):
-        motr=nb.load(file).header.get_zooms()[3]
-        return motr
+    #def _getTR(file):
+        #import nibabel as nb
+        #motr=nb.load(file).header.get_zooms()[3]
+        #return motr
     
     def _pick_csf(files):
         return files[0]
@@ -89,7 +89,8 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
         (extractcbf,basilcbf,[('out_file','in_file')]),
         (gm_tfm,basilcbf,[('output_image','pvgm')]),
         (wm_tfm,basilcbf,[('output_image','pvwm')]),
-        (extractcbf,basilcbf,[('out_avg','mzero'),(('out_avg',_getTR),'m0tr')]),
+        (inputnode,basilcbf,[('bold_mask','mask')]),
+        (extractcbf,basilcbf,[('out_avg','mzero')]),
         (basilcbf,outputnode,[('out_cbfb','out_cbfb'),
                 ('out_attb','out_attb'),('out_cbfpv','out_cbfpv')]),
         (computecbf,outputnode,[('out_cbf','out_cbf'),
