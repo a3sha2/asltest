@@ -3,9 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import nibabel as nb
-import nilearn.image as nli
-from textwrap import indent
-import transforms3d
+
 
 from nipype import logging
 from nipype.utils.filemanip import fname_presuffix,split_filename,copyfiles
@@ -76,24 +74,20 @@ class extractCBF(SimpleInterface):
 
 
 class _computeCBFInputSpec(BaseInterfaceInputSpec):
-    in_file = File(exists=True, mandatory=True,
-                              desc='asl raw')
+    #in_file = File(exists=True, mandatory=True,
+                              #desc='asl raw')
     in_cbf = File(exists=True,mandatory=True,desc= 'cbf nifti')
     in_metadata = traits.Dict(exists=True, mandatory=True,
               desc='metadata for CBF ')
-    in_metadatam0 = traits.Dict(exists=True, mandatory=False,
-              desc='metadata for m0 now ')
     in_m0file = File(exists=True, mandatory=False,
               desc='M0 nifti file')
-    in_control= File(exists=True, mandatory=False,
-              desc='out_avg from extractCBF ')
-    out_file=File(exists=False,mandatory=True,desc='cbf timeries data')
+    out_cbf=File(exists=False,mandatory=True,desc='cbf timeries data')
     out_mean=File(exists=False,mandatory=True,desc='average control')
     out_att=File(exists=False,mandatory=False,desc='Arterial Transit Time')
     
 
 class _computeCBFOutputSpec(TraitedSpec):
-    out_file=File(exists=False,mandatory=True,desc='cbf timeries data')
+    out_cbf=File(exists=False,mandatory=True,desc='cbf timeries data')
     out_mean=File(exists=False,mandatory=True,desc='average control')
     out_att=File(exists=False,mandatory=False,desc='Arterial Transit Time')
 
@@ -138,16 +132,15 @@ class computeCBF(SimpleInterface):
         perfusion_factor=np.array([perfusion_factor])
         # get control  now 
         avg_control=[]
-        if self.inputs.in_m0file:
-            if self.inputs.in_metadatam0['IntendedFor'] and self.inputs.in_metadata['ShimSetting']==self.inputs.in_metadatam0['ShimSetting']:
-                mzero=nb.load(self.inputs.in_m0file).get_fdata()
-                if len(mzero.shape) > 3:
-                    avg_control=np.mean(mzero,axis=3)
-                else:
-                    avg_control=mzero
-        else: 
-            avg_control=nb.load(self.inputs.in_control).get_fdata()
+        
+        mzero=nb.load(self.inputs.in_m0file).get_fdata()
+        if len(mzero.shape) > 3:
+            avg_control=np.mean(mzero,axis=3)
+        else:
+            avg_control=mzero
+        if not m0scale:
             m0scale=1
+
 
         cbf_data=nb.load(self.inputs.in_cbf).get_fdata()
         m0_data=np.zeros(cbf_data.shape)
@@ -173,17 +166,16 @@ class computeCBF(SimpleInterface):
             att=np.sum(deltaM2,axis=4)/np.sum(deltaM,axis=4)
         else:
             cbf=cbf1*perfusion_factor
-        print(cbf.shape)
         ## cbf is timeseries
         meancbf=np.mean(cbf,axis=3)
-        self._results['out_file'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_cbf'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_cbf', newpath=runtime.cwd)
         self._results['out_mean'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_meancbf', newpath=runtime.cwd)
         samplecbf=nb.load(self.inputs.in_cbf)
         nb.Nifti1Image(
             cbf, samplecbf.affine, samplecbf.header).to_filename(
-            self._results['out_file'])
+            self._results['out_cbf'])
         nb.Nifti1Image(
             meancbf, samplecbf.affine, samplecbf.header).to_filename(
             self._results['out_mean'])
@@ -205,8 +197,8 @@ class _scorescrubCBFInputSpec(BaseInterfaceInputSpec):
     in_whiteM = File(exists=True, mandatory=True,desc='white  matter')
     in_mask = File(exists=True, mandatory=True,desc='mask')
     in_csf = File(exists=True, mandatory=True,desc='csf')
-    in_thresh=traits.Float(exists=True,mandatory=False,desc='threshold of propbaility matter')
-    in_wfun=traits.Str(exists=True,mandatory=False,default='huber',
+    in_thresh=traits.Float(default_value=0.7,exists=True,mandatory=False,desc='threshold of propbaility matter')
+    in_wfun=traits.Str(exists=True,mandatory=False,default_value='huber',
               option=['bisquare','andrews','cauchy','fair','logistics','ols','talwar','welsch'],
                desc='wavelet fun ')
     out_score=File(exists=False,mandatory=True,desc='score timeseries data')
@@ -240,11 +232,11 @@ class scorescrubCBF(SimpleInterface):
         cbfscrub=_scrubcbf(cbf_ts=cbf_scorets,gm=greym,wm=whitem,csf=csf,mask=mask,
                           wfun=self.inputs.in_wfun,thresh=self.inputs.in_thresh)
         
-        self._results['out_score'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_score'] = fname_presuffix(self.inputs.out_file,
                                                    suffix='_cbfscorets', newpath=runtime.cwd)
-        self._results['out_avgscore'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_avgscore'] = fname_presuffix(self.inputs.out_file,
                                                    suffix='_meancbfscore', newpath=runtime.cwd)
-        self._results['out_scrub'] = fname_presuffix(self.inputs.in_file,
+        self._results['out_scrub'] = fname_presuffix(self.inputs.out_file,
                                                    suffix='_cbfscrub', newpath=runtime.cwd)
         self._results['out_scoreindex'] =runtime.cwd+'/scorescrub.txt'
                                                    
@@ -461,18 +453,18 @@ class _BASILCBFInputSpec(FSLCommandInputSpec):
     m0scale=traits.Float(desc='calibration of asl',argstr=" --cgain %.2f ",mandatory=True,)
     m0tr=traits.Float(desc='Mzero TR',argstr=" --tr %.2f ",mandatory=True,)
     tis=traits.Float(desc='invertion recovery time =plds+bolus',argstr=" --tis %.2f ",mandatory=True,)
-    pcasl=traits.Bool(desc='label type:defualt is PASL',argstr=" --casl ",mandatory=True,)
+    pcasl=traits.Bool(desc='label type:defualt is PASL',argstr=" --casl ",mandatory=False,default_value=False)
     bolus=traits.Float(desc='bolus or tau: label duraytion',argstr=" --bolus %.2f ",mandatory=True,)
-    pvc=traits.Bool(desc='calibration of asl',mandatory=False,argstr=" --pvcorr ",)
+    pvc=traits.Bool(desc='calibration of asl',mandatory=False,argstr=" --pvcorr ",default_value=True)
     pvgm=File(exists=True,mandatory=False,desc='grey matter probablity matter ',argstr=" --pvgm %s ",)
     pvwm=File(exists=True,mandatory=False,desc='white matter probablity matter ',argstr=" --pvwm %s ",)
     out_basename=File(desc="base name of output files", argstr=" -o %s ",mandatory=True,) 
     #environ=traits.Str('FSLOUTPUTTYPE': 'NIFTI_GZ'}
 
 class _BASILCBFOutputSpec(TraitedSpec):
-    out_cbf=File(exists=False,mandatory=True,desc='cbf with spatial correction')
+    out_cbfb=File(exists=False,mandatory=True,desc='cbf with spatial correction')
     out_cbfpv=File(exists=False,mandatory=False,desc='cbf with spatial correction')
-    out_att=File(exists=False,mandatory=False,desc='aretrial transist time')
+    out_attb=File(exists=False,mandatory=False,desc='aretrial transist time')
    
 class BASILCBF(FSLCommand):
     _cmd = " oxford_asl "
@@ -486,14 +478,14 @@ class BASILCBF(FSLCommand):
             shutil.rmtree(self.inputs.out_basename+'/calib')    
         runtime = super(BASILCBF, self)._run_interface(runtime)
         outputs = self.input_spec().get()
-        outputs["out_cbf"]=self.inputs.out_basename+'/basilcbf.nii.gz'
+        outputs["out_cbfb"]=self.inputs.out_basename+'/basilcbf.nii.gz'
         from shutil import copyfile
         copyfile(self.inputs.out_basename+'/native_space/perfusion_calib.nii.gz',outputs["out_cbf"])
         if len(np.array([self.inputs.tis])) > 1:
             outputs["out_att"]=self.inputs.out_basename+'/arrivaltime.nii.gz'
             copyfile(self.inputs.out_basename+'/native_space/arrival.nii.gz',outputs["out_att"])
         else:
-            outputs["out_att"]=Undefined
+            outputs["out_attb"]=Undefined
         if self.inputs.pvc:
             outputs["out_cbfpv"]=self.inputs.out_basename+'/basilcbfpv.nii.gz'
             copyfile(self.inputs.out_basename+'/native_space/pvcorr/perfusion_calib.nii.gz',outputs["out_cbfpv"])

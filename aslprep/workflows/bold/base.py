@@ -34,6 +34,7 @@ from .confounds import init_bold_confs_wf, init_carpetplot_wf
 from .hmc import init_bold_hmc_wf
 from .stc import init_bold_stc_wf
 from .t2s import init_bold_t2s_wf
+from .cbf import init_cbf_compt_wf
 from .registration import init_bold_t1_trans_wf, init_bold_reg_wf
 from .resampling import (
     init_bold_surf_wf,
@@ -72,6 +73,8 @@ def init_func_preproc_wf(
     #use_aroma,
     use_bbr,
     use_syn,
+    pcasl,
+    #aslcontext,
     layout=None,
     num_bold=1,
 ):
@@ -322,6 +325,8 @@ def init_func_preproc_wf(
     else:
         # Find associated sbref, if possible
         entities = layout.parse_file_entities(ref_file)
+        file1=os.path.abspath(bold_file)
+        aslcontext=file1.replace('.nii.gz','_ASLContext.tsv')
         entities['suffix'] = 'sbref'
         entities['extension'] = ['nii', 'nii.gz']  # Overwrite extensions
         files = layout.get(return_type='file', **entities)
@@ -482,6 +487,14 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                    omp_nthreads=omp_nthreads,
                                    use_compression=False)
 
+    # compute  the CBF here 
+    compt_cbf_wf=init_cbf_compt_wf(name='compt_cbf_wf',
+                                   mem_gb=mem_gb['filesize'],
+                                   omp_nthreads=omp_nthreads,
+                                   pcasl=pcasl,
+                                   metadata=metadata,
+                                   aslcontext=aslcontext)
+
     # apply BOLD registration to T1w
     bold_t1_trans_wf = init_bold_t1_trans_wf(name='bold_t1_trans_wf',
                                              freesurfer=freesurfer,
@@ -638,6 +651,13 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         # Summary
         (outputnode, summary, [('confounds', 'confounds_file')]),
     ])
+    # cbf computation workflow 
+    workflow.connect([
+         (bold_bold_trans_wf,compt_cbf_wf,[('outputnode.bold','inputnode.bold'),
+                                      ('outputnode.bold_mask','inputnode.bold_mask')]),
+         (inputnode,compt_cbf_wf,[('t1w_tpms','inputnode.t1w_tpms')]),
+         (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_t1_to_bold','inputnode.t1_bold_xform')]),
+     ])
 
     if not t2s_coreg:
         workflow.connect([

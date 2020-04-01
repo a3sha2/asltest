@@ -263,6 +263,8 @@ https://aslprep.readthedocs.io/en/%s/spaces.html""" % (currentv.base_version
                               'world usage crucial for obtaining funding.')
     g_other.add_argument('--sloppy', action='store_true', default=False,
                          help='Use low-quality tools for speed - TESTING ONLY')
+    g_other.add_argument('--pcasl', action='store_true', default=False,
+                         help='Use low-quality tools for speed - TESTING ONLY')
 
     latest = check_latest()
     if latest is not None and currentv < latest:
@@ -682,6 +684,7 @@ def build_workflow(opts, retval):
         use_bbr=opts.use_bbr,
         use_syn=opts.use_syn_sdc,
         work_dir=str(work_dir),
+        pcasl=opts.pcasl,
         bids_filters=bids_filters,
     )
     retval['return_code'] = 0

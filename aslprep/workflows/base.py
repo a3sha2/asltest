@@ -33,6 +33,7 @@ from .bold import init_func_preproc_wf
 
 def init_fmriprep_wf(
     anat_only,
+    pcasl,
     #aroma_melodic_dim,
     bold2t1w_dof,
     cifti_output,
@@ -268,6 +269,7 @@ def init_fmriprep_wf(
             subject_id=subject_id,
             t2s_coreg=t2s_coreg,
             task_id=task_id,
+            pcasl=pcasl,
             #use_aroma=use_aroma,
             use_bbr=use_bbr,
             use_syn=use_syn,
@@ -323,6 +325,7 @@ def init_single_subject_wf(
     #use_aroma,
     use_bbr,
     use_syn,
+    pcasl,
     bids_filters,
 ):
     """
@@ -608,6 +611,9 @@ It is released under the [CC0]\
         return workflow
 
     for bold_file in subject_data['asl']:
+        #import os 
+        #file1=os.path.abspath(bold_file)
+        #aslcontext=file1.replace('.nii.gz','_ASLContext.tsv')
         func_preproc_wf = init_func_preproc_wf(
             #aroma_melodic_dim=aroma_melodic_dim,
             bold2t1w_dof=bold2t1w_dof,
@@ -628,6 +634,8 @@ It is released under the [CC0]\
             omp_nthreads=omp_nthreads,
             output_dir=output_dir,
             reportlets_dir=reportlets_dir,
+            pcasl=False,
+            #aslcontext=aslcontext,
             #regressors_all_comps=regressors_all_comps,
             #regressors_fd_th=regressors_fd_th,
             #regressors_dvars_th=regressors_dvars_th,
