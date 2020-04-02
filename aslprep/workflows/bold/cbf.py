@@ -21,8 +21,7 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
 
 
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['bold', 'bold_mask',
-                 't1w_tpms', 't1_bold_xform']),
+        fields=['bold', 'bold_mask','t1w_tpms', 't1_bold_xform']),
         name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['out_cbf', 'out_mean','out_att','out_score','out_avgscore','out_scrub',
@@ -38,7 +37,16 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
                      name='wm_tfm', mem_gb=0.1)
     gm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
                      name='gm_tfm', mem_gb=0.1)
+     
+    labeltype=metadata['LabelingType']
+    if 'CASL' in labeltype: 
+        pcasl=True
+    elif 'PASL' in labeltype:
+        pcasl=False
+    else:
+        print('unknown label type')
 
+        
     extractcbf = pe.Node(extractCBF(in_ASLcontext=aslcontext),mem_gb=0.2,run_without_submitting=True,name="extractcbf") 
     computecbf = pe.Node( computeCBF(in_metadata=metadata),mem_gb=0.2,
               run_without_submitting=True,name="computecbf")
@@ -68,8 +76,9 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
     
     workflow.connect([
         # extract CBF data and compute cbf
-        (inputnode,  extractcbf, [('bold','in_file'),]),
+        (inputnode,  extractcbf, [('bold','in_file')]),
         ( extractcbf, computecbf, [('out_file','in_cbf'),('out_avg','in_m0file')]),
+        (inputnode,computecbf,[('bold_mask','in_mask')]),
 
         # extract probability maps
         (inputnode, csf_tfm, [('bold_mask', 'reference_image'),
@@ -95,7 +104,7 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
                 ('out_attb','out_attb'),('out_cbfpv','out_cbfpv')]),
         (computecbf,outputnode,[('out_cbf','out_cbf'),
                       ('out_att','out_att'),('out_mean','out_mean')]),
-        (scorescrub,outputnode,[('out_score','out_score'),
+        (scorescrub,outputnode,[('out_score','out_score'),('out_scoreindex','out_scoreindex'),
                     ('out_avgscore','out_avgscore'),('out_scrub','out_scrub')]),
          ])
 

@@ -84,6 +84,8 @@ class _computeCBFInputSpec(BaseInterfaceInputSpec):
               desc='metadata for CBF ')
     in_m0file = File(exists=True, mandatory=False,
               desc='M0 nifti file')
+    in_mask = File(exists=True, mandatory=False,
+              desc='mask')
     out_cbf=File(exists=False,mandatory=False,desc='cbf timeries data')
     out_mean=File(exists=False,mandatory=False,desc='average control')
     out_att=File(exists=False,mandatory=False,desc='Arterial Transit Time')
@@ -113,7 +115,8 @@ class computeCBF(SimpleInterface):
         plds=np.array(self.inputs.in_metadata['InitialPostLabelDelay'])
         m0scale=self.inputs.in_metadata['M0']
         magstrength=self.inputs.in_metadata['MagneticFieldStrength']
-        t1blood=110*int(magstrength[:-1])+1316
+        mask=nb.load(self.inputs.in_mask).get_fdata()
+        t1blood=(110*int(magstrength[:-1])+1316)/1000
         inverstiontime=np.add(tau,plds)
         if self.inputs.in_metadata['LabelingEfficiency']:
             labeleff=self.inputs.in_metadata['LabelingEfficiency']
@@ -138,20 +141,19 @@ class computeCBF(SimpleInterface):
         
         mzero=nb.load(self.inputs.in_m0file).get_fdata()
         if len(mzero.shape) > 3:
-            avg_control=np.mean(mzero,axis=3)
+            avg_control=np.multiply(mask,np.mean(mzero,axis=3))
         else:
-            avg_control=mzero
+            avg_control=np.multiply(mzero,mask)   
         if not m0scale:
             m0scale=1
 
 
         cbf_data=nb.load(self.inputs.in_cbf).get_fdata()
-        m0_data=np.zeros(cbf_data.shape)
+        cbf1=np.zeros(cbf_data.shape)
         for i in range(cbf_data.shape[3]):
-            m0_data[:,:,:,i]=avg_control
-        
-        cbf1=(cbf_data/m0_data)/m0scale
-
+                cbf1[:,:,:,i]=np.divide(cbf_data[:,:,:,i],(m0scale*avg_control))
+        #m1=m0scale*m0_data
+        #cbf1=np.divide(cbf_data,m1)
         # for compute cbf for each PLD and TI 
         att=None
         if len(perfusion_factor) > 1: 
@@ -246,8 +248,8 @@ class scorescrubCBF(SimpleInterface):
                                                    suffix='_meancbfscore', newpath=runtime.cwd)
         self._results['out_scrub'] = fname_presuffix(self.inputs.in_file,
                                                    suffix='_cbfscrub', newpath=runtime.cwd)
-        self._results['out_scoreindex'] =  fname_presuffix(self.inputs.in_file,
-                                                   suffix='_scoreindex.txt', newpath=runtime.cwd,use_ext=False)
+        self._results['out_scoreindex'] =fname_presuffix(self.inputs.in_file,suffix='_scoreindex.txt', 
+                                          newpath=runtime.cwd,use_ext=False)
                                                    
         samplecbf=nb.load(self.inputs.in_mask)
         nb.Nifti1Image(
@@ -344,7 +346,7 @@ def _getchisquare(n):
       1.010085, 1.009149, 1.008444, 1.009455, 1.009705, 1.008597, 1.008644, 1.008051, 1.008085, 1.008550, 
       1.008265, 1.009141, 1.008235, 1.008002, 1.008007, 1.007660, 1.007993, 1.007184, 1.008093, 1.007816, 
       1.007770, 1.007932, 1.007819, 1.007063, 1.006712, 1.006752, 1.006703, 1.006650, 1.006743, 1.007087]
-    return a[n],b[n]
+    return a[n-1],b[n-1]
 
 def _getcbfscore(cbfts,wm,gm,csf,thresh=0.7):
     gm[gm<thresh]=0; gm[gm>0]=1
@@ -392,12 +394,14 @@ def _roubustfit(Y,mu,Globalprior,modrobprior,lmd=0,localprior=0,wfun='huber',tun
     adjfactor=1/(np.sqrt(1-h/priow))
     tiny_s=(1e-6)*(np.std(h,axis=0));tiny_s[tiny_s==0]=1
     D=np.sqrt(np.finfo(float).eps)
-    iter =0; interlim=100
+    iter =0; interlim=10
   
     while iter<interlim:
         print('iteration  ', iter,"\n")
         iter=iter + 1
-        if np.sum(np.abs(b-b0)) < np.sum(D*np.minimum(np.abs(b),np.abs(b0))):
+        check1=np.subtract(np.abs(b-b0),(D*np.maximum(np.abs(b),np.abs(b0))))
+        check1[check1>0]=0
+        if any(check1):
             print(' \n converged after ', iter,"iterations\n")
             break
         r = Y - X*(np.tile(b,(dimcbf[0],1))) 
@@ -494,7 +498,7 @@ class BASILCBF(FSLCommand):
             shutil.rmtree(self.inputs.out_basename+'/native_space')
             shutil.rmtree(self.inputs.out_basename+'/calib')    
         runtime = super(BASILCBF, self)._run_interface(runtime)
-        outputs = self.input_spec().get()
+        outputs = self.output_spec().get()
         #outputs["out_cbfb"]=self.inputs.out_basename+'/basilcbf.nii.gz'
         outputs["out_cbfb"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasil', newpath=runtime.cwd)
         from shutil import copyfile
