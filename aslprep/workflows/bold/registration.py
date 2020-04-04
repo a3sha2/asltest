@@ -262,15 +262,17 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
         niu.IdentityInterface(
             fields=['name_source', 'ref_bold_brain', 'ref_bold_mask',
                     't1w_brain', 't1w_mask', 't1w_aseg', 't1w_aparc',
-                    'bold_split', 'fieldwarp', 'hmc_xforms',
+                    'bold_split', 'fieldwarp', 'hmc_xforms', 'cbf','meancbf',
+                    'att','score','avgscore','scrub','basil','pv','attb',
                     'itk_bold_to_t1']),
         name='inputnode'
     )
 
     outputnode = pe.Node(
         niu.IdentityInterface(fields=[
-            'bold_t1', 'bold_t1_ref', 'bold_mask_t1',
-            'bold_aseg_t1', 'bold_aparc_t1']),
+            'bold_t1', 'bold_t1_ref', 'bold_mask_t1','bold_aseg_t1', 'bold_aparc_t1',
+            'cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1','scrub_t1','basil_t1','pv_t1',
+            'attb_t1',]),
         name='outputnode'
     )
 
@@ -313,6 +315,35 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
     bold_to_t1w_transform = pe.Node(
         MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
         name='bold_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    cbf_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='cbf_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    meancbf_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='meancbf_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    score_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='score_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    att_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='att_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    avgscore_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='avgscore_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    scrub_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='scrub_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    basil_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='basil_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    pv_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='pv_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    attb_to_t1w_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='attb_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+
 
     # merge 3D volumes into 4D timeseries
     merge = pe.Node(Merge(compress=use_compression), name='merge', mem_gb=mem_gb)
@@ -358,6 +389,55 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
         (mask_t1w_tfm, gen_final_ref, [('output_image', 'inputnode.bold_mask')]),
         (merge, outputnode, [('out_file', 'bold_t1')]),
         (gen_final_ref, outputnode, [('outputnode.ref_image', 'bold_t1_ref')]),
+        (inputnode,cbf_to_t1w_transform,[('inputnode.cbf','input_image')]),
+        (inputnode, cbf_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, cbf_to_t1w_transform, [('out_file', 'reference_image')]),
+        (cbf_to_t1w_transform,outputnode,[('out_files','output.cbf_t1')]),
+
+        (inputnode,meancbf_to_t1w_transform,[('inputnode.meancbf','input_image')]),
+        (meancbf_to_t1w_transform,outputnode,[('out_files','output.meancbf_t1')]),
+        (inputnode, meancbf_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, meancbf_to_t1w_transform, [('out_file', 'reference_image')]),
+        (meancbf_to_t1w_transform,outputnode,[('out_files','output.meancbf_t1')]),
+
+        (inputnode,avgscore_to_t1w_transform,[('inputnode.avgscore','input_image')]),
+        (avgscore_to_t1w_transform,outputnode,[('out_files','output.avgscore_t1')]),
+        (inputnode, avgscore_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, avgscore_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+
+        (inputnode,score_to_t1w_transform,[('inputnode.score','input_image')]),
+        (score_to_t1w_transform,outputnode,[('out_files','output.score_t1')]),
+        (inputnode, score_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, score_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+        (inputnode,scrub_to_t1w_transform,[('inputnode.scrub','input_image')]),
+        (scrub_to_t1w_transform,outputnode,[('out_files','output.scrub_t1')]),
+        (inputnode, scrub_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, scrub_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+        (inputnode,basil_to_t1w_transform,[('inputnode.basil','input_image')]),
+        (basil_to_t1w_transform,outputnode,[('out_files','output.basil_t1')]),
+        (inputnode, basil_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, basil_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+
+        (inputnode,pv_to_t1w_transform,[('inputnode.pv','input_image')]),
+        (pv_to_t1w_transform,outputnode,[('out_files','output.pv_t1')]),
+        (inputnode, pv_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, pv_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+
+        (inputnode,attb_to_t1w_transform,[('inputnode.attb','input_image')]),
+        (attb_to_t1w_transform,outputnode,[('out_files','output.attb_t1')]),
+        (inputnode, attb_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, attb_to_t1w_transform, [('out_file', 'reference_image')]),
+        
+
+        (inputnode,att_to_t1w_transform,[('inputnode.att','input_image')]),
+        (att_to_t1w_transform,outputnode,[('out_files','output.att_t1')]),
+        (inputnode, att_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
+        (gen_ref, att_to_t1w_transform, [('out_file', 'reference_image')]),
     ])
 
     return workflow

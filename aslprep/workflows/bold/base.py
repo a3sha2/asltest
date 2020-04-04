@@ -411,7 +411,14 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['bold_t1', 'bold_t1_ref', 'bold_mask_t1', 'bold_aseg_t1', 'bold_aparc_t1',
                 'bold_std', 'bold_std_ref', 'bold_mask_std', 'bold_aseg_std', 'bold_aparc_std',
-                'bold_native', 'bold_cifti', 'cifti_variant', 'cifti_metadata', 'cifti_density',
+                'bold_native', 'bold_cifti',
+                'cbf_t1','cbf_std', 'cbf_cifti','meancbf_t1','meancbf_std','meancbf_cifti',
+                'att_t1','att_std','score_t1','score_std','score_cifti',
+                'avgscore_t1', 'avgscore_std', 'avgscore_cifti',
+                'scrub_t1','scrub_std', 'scrub_cifti','basil_t1','basil_std',
+                'basil_cifti','pv_t1','pv_std','pv_native', 'pv_cifti',
+                'attb_t1','attb_std',
+                'cifti_variant', 'cifti_metadata', 'cifti_density',
                 'surfaces', 'confounds', 'aroma_noise_ics', 'melodic_mix', 'nonaggr_denoised_file',
                 'confounds_metadata']),
         name='outputnode')
@@ -458,6 +465,24 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('cifti_metadata', 'inputnode.cifti_metadata'),
             ('cifti_density', 'inputnode.cifti_density'),
             ('confounds_metadata', 'inputnode.confounds_metadata'),
+            ('cbf_t1', 'inputnode.cbf_t1'),
+            ('cbf_cifti', 'inputnode.cbf_cifti'),
+            ('meancbf_t1', 'inputnode.meancbf_t1'),
+            ('meancbf_cifti', 'inputnode.meancbf_cifti'),
+            ('att_t1', 'inputnode.att_t1'),
+            ('att_cifti', 'inputnode.att_cifti'),
+            ('score_t1', 'inputnode.score_t1'),
+            ('score_cifti', 'inputnode.score_cifti'),
+            ('avgscore_t1', 'inputnode.avgscore_t1'),
+            ('avgscore_cifti', 'inputnode.avgscore_cifti'),
+            ('scrub_t1', 'inputnode.scrub_t1'),
+            ('scrub_cifti', 'inputnode.scrub_cifti'),
+            ('basil_t1', 'inputnode.basil_t1'),
+            ('basil_cifti', 'inputnode.basil_cifti'),
+            ('pv_t1', 'inputnode.pv_t1'),
+            ('pv_cifti', 'inputnode.pv_cifti'),
+            ('attb_t1', 'inputnode.attb_t1'),
+            ('attb_cifti', 'inputnode.attb_cifti'),
         ]),
     ])
 
@@ -656,8 +681,30 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
          (bold_bold_trans_wf,compt_cbf_wf,[('outputnode.bold','inputnode.bold'),
                                       ('outputnode.bold_mask','inputnode.bold_mask')]),
          (inputnode,compt_cbf_wf,[('t1w_tpms','inputnode.t1w_tpms')]),
-         (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_t1_to_bold','inputnode.t1_bold_xform')]),
      ])
+     # register  bold to t1w 
+    workflow.connect([
+         (compt_cbf_wf,bold_t1_trans_wf,[('ouputnode.out_cbf','inputnode.cbf'),
+                                      ('outputnode.out_mean','inputnode.meancbf'),
+                                      ('outputnode.out_att','inputnode.att'),
+                                      ('outputnode.out_score','inputnode.score'),
+                                      ('outputnode.out_avgscore','inputnode.avgscore'),
+                                      ('outputnode.out_scrub','inputnode.scrub'),
+                                      ('outputnode.out_cbfb','inputnode.basil'),
+                                      ('outputnode.out_cbfpv','inputnode.pv'),
+                                      ('outputnode.out_attb','inputnode.attb')]),
+         (bold_t1_trans_wf,outputnode,[('ouputnode.cbf_t1','cbf_t1'),
+                                      ('outputnode.mean_t1','meancbf_t1'),
+                                      ('outputnode.att_t1','att_t1'),
+                                      ('outputnode.score_t1','score_t1'),
+                                      ('outputnode.avgscore_t1','avgscore_t1'),
+                                      ('outputnode.scrub_t1','scrub_t1'),
+                                      ('outputnode.basil_t1','basil_t1'),
+                                      ('outputnode.pv_t1','pv_t1'),
+                                      ('outputnode.attb_t1','attb_t1')]),
+     ])
+
+
 
     if not t2s_coreg:
         workflow.connect([
@@ -785,6 +832,16 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_bold_trans_wf, func_derivatives_wf, [
                 ('outputnode.bold_ref', 'inputnode.bold_native_ref'),
                 ('outputnode.bold_mask', 'inputnode.bold_mask_native')]),
+            (compt_cbf_wf, func_derivatives_wf, 
+                                      [('ouputnode.out_cbf','inputnode.cbf'),
+                                      ('outputnode.out_mean','inputnode.meancbf'),
+                                      ('outputnode.out_att','inputnode.att'),
+                                      ('outputnode.out_score','inputnode.score'),
+                                      ('outputnode.out_avgscore','inputnode.avgscore'),
+                                      ('outputnode.out_scrub','inputnode.scrub'),
+                                      ('outputnode.out_cbfb','inputnode.basil'),
+                                      ('outputnode.out_cbfpv','inputnode.pv'),
+                                      ('outputnode.out_attb','inputnode.attb')]),
         ])
 
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
@@ -817,7 +874,18 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_std_trans_wf, outputnode, [('outputnode.bold_std', 'bold_std'),
                                              ('outputnode.bold_std_ref', 'bold_std_ref'),
                                              ('outputnode.bold_mask_std', 'bold_mask_std')]),
-        ])
+            (compt_cbf_wf,bold_std_trans_wf,[('outputnode.out_cbf,inputnode.cbf'),
+                                            ('outputnode.out_mean,inputnode.meancbf'),
+                                            ('outputnode.out_att,inputnode.att'),
+                                            ('outputnode.out_score,inputnode.score'),
+                                            ('outputnode.out_avgscore,inputnode.avgscore'),
+                                            ('outputnode.out_scrub,inputnode.scrub'),
+                                            ('outputnode.out_cbfb,inputnode.basil'),
+                                            ('outputnode.out_cbfpv,inputnode.pv'),
+                                            ('outputnode.out_attb,inputnode.attb')])
+             ])
+
+
 
         if freesurfer:
             workflow.connect([
@@ -878,7 +946,16 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.bold_std_ref', 'inputnode.bold_std_ref'),
                 ('outputnode.bold_std', 'inputnode.bold_std'),
                 ('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
-            ]),
+                ('outputnode.cbf_std,inputnode.cbf_std'),
+                ('outputnode.meancbf_std,inputnode.meancbf_std'),
+                ('outputnode.att_std,inputnode.att_std'),
+                ('outputnode.score_std,inputnode.score_std'),
+                ('outputnode.avgscore_std,inputnode.avgscore_std'),
+                ('outputnode.scrub_std,inputnode.scrub_std'),
+                ('outputnode.basil_std,inputnode.basil_std'),
+                ('outputnode.pv_std,inputnode.pv_std'),
+                ('outputnode.attb_std,inputnode.attb_std'),]),
+           
         ])
 
         #if use_aroma:  # ICA-AROMA workflow
@@ -971,13 +1048,28 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                     ('subjects_dir', 'inputnode.subjects_dir')]),
                 (bold_std_trans_wf, bold_grayords_wf, [
                     ('outputnode.bold_std', 'inputnode.bold_std'),
-                    ('outputnode.spatial_reference', 'inputnode.spatial_reference')]),
+                    ('outputnode.spatial_reference', 'inputnode.spatial_reference'),
+                    ('outputnode.cbf_std','inputnode.cbf_std'),
+                    ('outputnode.meancbf_std','inputnode.meancbf_std'),
+                    ('outputnode.score_std','inputnode.score_std'),
+                    ('outputnode.avgscore_std','inputnode.avgscore_std'),
+                    ('outputnode.scrub_std','inputnode.scrub_std'),
+                    ('outputnode.basil_std','inputnode.basil_std'),
+                    ('outputnode.pv_std','inputnode.pv_std'),
+                    ]),
                 (bold_surf_wf, bold_grayords_wf, [
                     ('outputnode.surfaces', 'inputnode.surf_files'),
                     ('outputnode.target', 'inputnode.surf_refs'),
                 ]),
                 (bold_grayords_wf, outputnode, [
                     ('outputnode.cifti_bold', 'bold_cifti'),
+                    ('outputnode.cbf_cifti', 'cbf_cifti'),
+                    ('outputnode.meancbf_cifti', 'meancbf_cifti'),
+                    ('outputnode.score_cifti', 'score_cifti'),
+                    ('outputnode.avgscore_cifti', 'avgscore_cifti'),
+                    ('outputnode.scrub_cifti', 'scrub_cifti'),
+                    ('outputnode.basil_cifti', 'basil_cifti'),
+                    ('outputnode.pv_cifti', 'pv_cifti'),
                     ('outputnode.cifti_variant', 'cifti_variant'),
                     ('outputnode.cifti_metadata', 'cifti_metadata'),
                     ('outputnode.cifti_density', 'cifti_density')]),

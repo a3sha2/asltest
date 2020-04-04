@@ -59,12 +59,16 @@ def init_func_derivatives_wf(
     workflow = Workflow(name=name)
 
     inputnode = pe.Node(niu.IdentityInterface(fields=[
-        'aroma_noise_ics', 'bold_aparc_std', 'bold_aparc_t1', 'bold_aseg_std',
+        'bold_aparc_std', 'bold_aparc_t1', 'bold_aseg_std',
         'bold_aseg_t1', 'bold_cifti', 'bold_mask_std', 'bold_mask_t1', 'bold_std',
         'bold_std_ref', 'bold_t1', 'bold_t1_ref', 'bold_native', 'bold_native_ref',
         'bold_mask_native', 'cifti_variant', 'cifti_metadata', 'cifti_density',
-        'confounds', 'confounds_metadata', 'melodic_mix', 'nonaggr_denoised_file',
-        'source_file', 'surf_files', 'surf_refs', 'template', 'spatial_reference']),
+        'confounds', 'confounds_metadata', 'source_file', 'surf_files', 'surf_refs', 
+        'template', 'spatial_reference','cbf','meancbf','att','score','avgscore',
+        'scrub','basil','pv','attb','cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1',
+        'scrub_t1','basil_t1','pv_t1','attb_t1','cbf_std','meancbf_std','att_std','score_std',
+        'avgscore_std','scrub_std','basil_std','pv_std','attb_std','cbf_cifti','meancbf_cifti',
+        'score_cifti','avgscore_cifti','scrub_cifti','basil_cifti','pv_cifti']),
         name='inputnode')
 
     raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
@@ -98,6 +102,7 @@ def init_func_derivatives_wf(
                                 suffix='mask', compress=True),
             name='ds_bold_mask_native', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
+        
 
         workflow.connect([
             (inputnode, ds_bold_native, [('source_file', 'source_file'),

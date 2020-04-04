@@ -11,7 +11,7 @@ from .multiecho import T2SMap
 
 
 class DerivativesDataSink(bids.DerivativesDataSink):
-    out_path_base = 'fmriprep'
+    out_path_base = 'aslprep'
 
 
 __all__ = [

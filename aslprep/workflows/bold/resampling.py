@@ -297,6 +297,15 @@ preprocessed BOLD runs*: {tpl}.
     inputnode = pe.Node(
         niu.IdentityInterface(fields=[
             'anat2std_xfm',
+            'cbf',
+            'meancbf',
+            'att',
+            'score',
+            'avgscore',
+            'scrub',
+            'basil',
+            'pv',
+            'attb',
             'bold_aparc',
             'bold_aseg',
             'bold_mask',
@@ -351,6 +360,42 @@ preprocessed BOLD runs*: {tpl}.
     bold_to_std_transform = pe.Node(
         MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
         name='bold_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    cbf_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='cbf_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    meancbf_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='meancbf_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    att_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='att_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    score_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='score_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    avgscore_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='avgscore_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+
+    scrub_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='scrub_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    basil_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='basil_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    pv_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='pv_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
+    attb_to_std_transform = pe.Node(
+        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        name='attb_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
 
     merge = pe.Node(Merge(compress=use_compression), name='merge',
                     mem_gb=mem_gb * 3)
@@ -383,6 +428,7 @@ preprocessed BOLD runs*: {tpl}.
         (mask_std_tfm, gen_final_ref, [('output_image', 'inputnode.bold_mask')]),
         (bold_to_std_transform, merge, [('out_files', 'in_files')]),
         (merge, gen_final_ref, [('out_file', 'inputnode.bold_file')]),
+
     ])
 
     output_names = [
@@ -391,6 +437,15 @@ preprocessed BOLD runs*: {tpl}.
         'bold_std_ref',
         'spatial_reference',
         'template',
+        'cbf_std',
+        'meancbf_std',
+        'att_std',
+        'score_std',
+        'avgscore_std',
+        'scrub_std',
+        'basil_std',
+        'pv_std',
+        'attb_std',
     ] + freesurfer * ['bold_aseg_std', 'bold_aparc_std']
 
     poutputnode = pe.Node(niu.IdentityInterface(fields=output_names),
@@ -403,6 +458,53 @@ preprocessed BOLD runs*: {tpl}.
         (gen_final_ref, poutputnode, [('outputnode.ref_image', 'bold_std_ref')]),
         (mask_std_tfm, poutputnode, [('output_image', 'bold_mask_std')]),
         (select_std, poutputnode, [('key', 'template')]),
+
+        (merge_xforms, cbf_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, cbf_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, cbf_to_std_transform, [('cbf', 'input_image')]),
+        (cbf_to_std_transform, poutputnode, [('out_files', 'cbf_std')]),
+
+        (merge_xforms, meancbf_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, meancbf_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, meancbf_to_std_transform, [('cbf', 'input_image')]),
+        (meancbf_to_std_transform, poutputnode, [('out_files', 'meancbf_std')]),
+
+        (merge_xforms, att_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, att_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, att_to_std_transform, [('att', 'input_image')]),
+        (att_to_std_transform, poutputnode, [('out_files', 'att_std')]),
+
+        (merge_xforms, score_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, score_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, score_to_std_transform, [('score', 'input_image')]),
+        (score_to_std_transform, poutputnode, [('out_files', 'score_std')]),
+
+        (merge_xforms, avgscore_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, avgscore_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, avgscore_to_std_transform, [('avgscore', 'input_image')]),
+        (avgscore_to_std_transform, poutputnode, [('out_files', 'avgscore_std')]),
+
+        (merge_xforms, scrub_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, scrub_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, scrub_to_std_transform, [('scrub', 'input_image')]),
+        (scrub_to_std_transform, poutputnode, [('out_files', 'scrub_std')]),
+
+        (merge_xforms, basil_to_std_transform, [('out', 'transforms')]), 
+        (gen_ref, basil_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, basil_to_std_transform, [('basil', 'input_image')]),
+        (basil_to_std_transform, poutputnode, [('out_files', 'basil_std')]),
+
+        (merge_xforms, pv_to_std_transform, [('out', 'transforms')]), 
+        (gen_ref, pv_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, pv_to_std_transform, [('pv', 'input_image')]),
+        (pv_to_std_transform, poutputnode, [('out_files', 'pv_std')]),
+
+        (merge_xforms, attb_to_std_transform, [('out', 'transforms')]), 
+        (gen_ref, attb_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode, attb_to_std_transform, [('attb', 'input_image')]),
+        (attb_to_std_transform, poutputnode, [('out_files', 'attb_std')]),
+
+
     ])
 
     if freesurfer:
@@ -709,6 +811,13 @@ surface space.
 
     inputnode = pe.Node(niu.IdentityInterface(fields=[
         'bold_std',
+        'cbf_std',
+        'meancbf_std',
+        'score_std',
+        'avgscore_std',
+        'scrub_std',
+        'basil_std'
+        'pv_std'
         'spatial_reference',
         'subjects_dir',
         'surf_files',
@@ -717,6 +826,13 @@ surface space.
 
     outputnode = pe.Node(niu.IdentityInterface(fields=[
         'cifti_bold',
+        'cbf_cifti',
+        'meancbf_cifti',
+        'score_cifti',
+        'avgscore_cifti'
+        'scrub_cifti',
+        'basil_cifti',
+        'pv_cifti',
         'cifti_variant',
         'cifti_metadata',
         'cifti_density',
@@ -726,6 +842,34 @@ surface space.
     select_std = pe.Node(KeySelect(fields=['bold_std']), name='select_std',
                          run_without_submitting=True, nohash=True)
     select_std.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_cbfstd = pe.Node(KeySelect(fields=['cbf_std']), name='select_cbfstd',
+                         run_without_submitting=True, nohash=True)
+    select_cbfstd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_meancbfstd = pe.Node(KeySelect(fields=['meancbf_std']), name='select_meancbfstd',
+                         run_without_submitting=True, nohash=True)
+    select_meancbfstd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_scorestd = pe.Node(KeySelect(fields=['score_std']), name='select_scorestd',
+                         run_without_submitting=True, nohash=True)
+    select_scorestd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_avgscorestd = pe.Node(KeySelect(fields=['avgscore_std']), name='select_avgscorestd',
+                         run_without_submitting=True, nohash=True)
+    select_avgscorestd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_scrubstd = pe.Node(KeySelect(fields=['scrub_std']), name='select_scrubstd',
+                         run_without_submitting=True, nohash=True)
+    select_scrubstd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_basilstd = pe.Node(KeySelect(fields=['basil_std']), name='select_basilstd',
+                         run_without_submitting=True, nohash=True)
+    select_basilstd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
+
+    select_pvstd = pe.Node(KeySelect(fields=['pv_std']), name='select_pvstd',
+                         run_without_submitting=True, nohash=True)
+    select_pvstd.inputs.key = 'MNI152NLin6Asym_res-%s' % mni_density
 
     select_fs_surf = pe.Node(KeySelect(
         fields=['surf_files']), name='select_fs_surf',
@@ -760,11 +904,34 @@ surface space.
     ]
 
     gen_cifti = pe.Node(GenerateCifti(
-        volume_target='MNI152NLin6Asym',
-        surface_target='fsLR',
-        TR=repetition_time,
-        surface_density=fslr_density,
-    ), name="gen_cifti")
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti")
+    
+    gen_cifti1 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti1")
+
+    gen_cifti2 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti1")
+    gen_cifti2 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti2")
+    gen_cifti3 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti3")
+    gen_cifti4 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti4")
+    gen_cifti5 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti5")
+    gen_cifti6 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti6")
+    gen_cifti7 = pe.Node(GenerateCifti(
+        volume_target='MNI152NLin6Asym',surface_target='fsLR',
+        TR=repetition_time,surface_density=fslr_density,), name="gen_cifti7")
 
     workflow.connect([
         (inputnode, gen_cifti, [('subjects_dir', 'subjects_dir')]),
@@ -779,6 +946,41 @@ surface space.
                                  ('variant', 'cifti_variant'),
                                  ('out_metadata', 'cifti_metadata'),
                                  ('density', 'cifti_density')]),
+
+        (inputnode,select_cbfstd,[('cbf_std','cbf_std'),
+                                ('spatial_reference','keys')]),
+        (select_cbfstd, gen_cifti1, [('cbf_std', 'bold_file')]),
+        (gen_cifti1, outputnode, [('out_file', 'cbf_cifti'),]),
+
+        (inputnode,select_meancbfstd,[('meancbf_std','meancbf_std'),
+                                ('spatial_reference','keys')]),
+        (select_meancbfstd, gen_cifti1, [('meancbf_std', 'bold_file')]),
+        (gen_cifti2, outputnode, [('out_file', 'meancbf_cifti'),]),
+
+        (inputnode,select_scorestd,[('score_std','score_std'),
+                                ('spatial_reference','keys')]),
+        (select_scorestd, gen_cifti3, [('score_std', 'bold_file')]),
+        (gen_cifti3, outputnode, [('out_file', 'score_cifti'),]),
+
+        (inputnode,select_avgscorestd,[('avgscore_std','avgscore_std'),
+                                ('spatial_reference','keys')]),
+        (select_avgscorestd, gen_cifti4, [('avgscore_std', 'bold_file')]),
+        (gen_cifti4, outputnode, [('out_file', 'score_cifti'),]),
+
+        (inputnode,select_scrubstd,[('scrub_std','scrub_std'),
+                                ('spatial_reference','keys')]),
+        (select_scorestd, gen_cifti5, [('scrub_std', 'bold_file')]),
+        (gen_cifti5, outputnode, [('out_file', 'scrub_cifti'),]),
+
+        (inputnode,select_basilstd,[('basil_std','basil_std'),
+                                ('spatial_reference','keys')]),
+        (select_basilstd, gen_cifti6, [('basil_std', 'bold_file')]),
+        (gen_cifti6, outputnode, [('out_file', 'basil_cifti'),]),
+
+        (inputnode,select_pvstd,[('pv_std','pv_std'),
+                                ('spatial_reference','keys')]),
+        (select_pvstd, gen_cifti7, [('pv_std', 'bold_file')]),
+        (gen_cifti7, outputnode, [('out_file', 'pv_cifti'),]),
     ])
     return workflow
 

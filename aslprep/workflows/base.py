@@ -31,7 +31,7 @@ from ..__about__ import __version__
 from .bold import init_func_preproc_wf
 
 
-def init_fmriprep_wf(
+def init_aslprep_wf(
     anat_only,
     pcasl,
     #aroma_melodic_dim,
@@ -222,8 +222,8 @@ def init_fmriprep_wf(
         A dict with the following structure {<suffix>:{<entity>:<filter>,...},...}
 
     """
-    fmriprep_wf = Workflow(name='fmriprep_wf')
-    fmriprep_wf.base_dir = work_dir
+    aslprep_wf = Workflow(name='aslprep_wf')
+    aslprep_wf.base_dir = work_dir
 
     if freesurfer:
         fsdir = pe.Node(
@@ -282,12 +282,12 @@ def init_fmriprep_wf(
         for node in single_subject_wf._get_all_nodes():
             node.config = deepcopy(single_subject_wf.config)
         if freesurfer:
-            fmriprep_wf.connect(fsdir, 'subjects_dir',
+            aslprep_wf.connect(fsdir, 'subjects_dir',
                                 single_subject_wf, 'inputnode.subjects_dir')
         else:
-            fmriprep_wf.add_nodes([single_subject_wf])
+            aslprep_wf.add_nodes([single_subject_wf])
 
-    return fmriprep_wf
+    return aslprep_wf
 
 
 def init_single_subject_wf(

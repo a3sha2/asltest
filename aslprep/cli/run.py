@@ -59,7 +59,7 @@ def get_parser():
                              'reports')
     parser.add_argument('analysis_level', choices=['participant'],
                         help='processing stage to be run, only "participant" in the case of '
-                             'fMRIPrep (see BIDS-Apps specification).')
+                             'aslprep (see BIDS-Apps specification).')
 
     # optional arguments
     parser.add_argument('--version', action='version', version=verstr)
@@ -492,7 +492,7 @@ def build_workflow(opts, retval):
     from ..niworkflows.utils.bids import collect_participants, check_pipeline_version
     from ..niworkflows.reports import generate_reports
     from ..__about__ import __version__
-    from ..workflows.base import init_fmriprep_wf
+    from ..workflows.base import init_aslprep_wf
 
     build_log = nlogging.getLogger('nipype.workflow')
 
@@ -648,7 +648,7 @@ def build_workflow(opts, retval):
         spaces=opts.output_spaces)
     )
 
-    retval['workflow'] = init_fmriprep_wf(
+    retval['workflow'] = init_aslprep_wf(
         anat_only=opts.anat_only,
         #aroma_melodic_dim=opts.aroma_melodic_dimensionality,
         bold2t1w_dof=opts.bold2t1w_dof,
