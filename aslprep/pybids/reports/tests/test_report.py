@@ -7,9 +7,9 @@ from os.path import join, abspath
 
 import pytest
 
-from bids.layout import BIDSLayout
-from bids.reports import BIDSReport
-from bids.tests import get_test_data_path
+from ....pybids.layout import BIDSLayout
+from ....pybids.reports import BIDSReport
+from ....pybids.tests import get_test_data_path
 
 
 @pytest.fixture

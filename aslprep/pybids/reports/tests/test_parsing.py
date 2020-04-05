@@ -7,9 +7,9 @@ import pytest
 
 import nibabel as nib
 
-from bids.reports import parsing
-from bids.layout import BIDSLayout
-from bids.tests import get_test_data_path
+from ....pybids.reports import parsing
+from ....pybids.layout import BIDSLayout
+from ....pybids.tests import get_test_data_path
 
 
 @pytest.fixture

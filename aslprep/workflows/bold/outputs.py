@@ -94,13 +94,45 @@ def init_func_derivatives_wf(
             name='ds_bold_native', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
         ds_bold_native_ref = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='boldref', compress=True),
+            DerivativesDataSink(base_directory=output_dir, suffix='aslref', compress=True),
             name='ds_bold_native_ref', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
         ds_bold_mask_native = pe.Node(
             DerivativesDataSink(base_directory=output_dir, desc='brain',
                                 suffix='mask', compress=True),
             name='ds_bold_mask_native', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        cbfnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='cbf', compress=True),
+            name='cbfnative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meancbfnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='mean_cbf', compress=True),
+            name='meancbfnative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scorenative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='score_cbf', compress=True),
+            name='scorenative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meanscorenative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='mean_score_cbf', compress=True),
+            name='meanscorenative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scrubnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='scrub_cbf', compress=True),
+            name='scrubnative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        basilnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='basil_cbf', compress=True),
+            name='basilnative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        pvnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='pvc_cbf', compress=True),
+            name='pvcnative', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        attnative = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', compress=True),
+            name='attnative', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
         
 
@@ -111,8 +143,29 @@ def init_func_derivatives_wf(
                                              ('bold_native_ref', 'in_file')]),
             (inputnode, ds_bold_mask_native, [('source_file', 'source_file'),
                                               ('bold_mask_native', 'in_file')]),
+            (inputnode,cbfnative,[('source_file', 'source_file'),
+                                              ('cbf', 'in_file')]),
+            (inputnode,meancbfnative,[('source_file', 'source_file'),
+                                              ('meancbf', 'in_file')]),
+            (inputnode,scorenative,[('source_file', 'source_file'),
+                                              ('score', 'in_file')]),
+            (inputnode,meanscorenative,[('source_file', 'source_file'),
+                                              ('avgscore', 'in_file')]),
+            (inputnode,scrubnative,[('source_file', 'source_file'),
+                                              ('scrub', 'in_file')]),
+            (inputnode,basilnative,[('source_file', 'source_file'),
+                                              ('basil', 'in_file')]),
+            (inputnode,pvnative,[('source_file', 'source_file'),
+                                              ('pv', 'in_file')]),
             (raw_sources, ds_bold_mask_native, [('out', 'RawSources')]),
         ])
+
+
+        if len([metadata['InitialPostLabelDelay']]) > 1:
+            workflow.connect([ 
+                     (inputnode,attnative,[('source_file', 'source_file'),
+                                              ('att', 'in_file')]),
+                    ])    
 
     # Resample to T1w space
     if nonstd_spaces.intersection(('T1w', 'anat')):
@@ -125,7 +178,7 @@ def init_func_derivatives_wf(
             mem_gb=DEFAULT_MEMORY_MIN_GB)
         ds_bold_t1_ref = pe.Node(
             DerivativesDataSink(base_directory=output_dir, space='T1w',
-                                suffix='boldref', compress=True),
+                                suffix='aslref', compress=True),
             name='ds_bold_t1_ref', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
 
@@ -134,6 +187,41 @@ def init_func_derivatives_wf(
                                 suffix='mask', compress=True),
             name='ds_bold_mask_t1', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
+        
+        cbfnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='cbf', space='T1w',compress=True),
+            name='cbfnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meancbfnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,suffix='mean_cbf', space='T1w',compress=True),
+            name='meancbfnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scorenativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,desc='score',suffix='cbf',space='T1w', compress=True),
+            name='scorenativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meanscorenativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='mean_cbf',desc='score',space='T1w', compress=True),
+            name='meanscorenativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scrubnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,desc='scrub',suffix='cbf',space='T1w', compress=True),
+            name='scrubnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        basilnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, desc='basil',suffix='cbf', space='T1w',compress=True),
+            name='basilnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        pvnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, desc='pvc',suffix='cbf',space='T1w', compress=True),
+            name='pvcnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        attnativet1 = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', space='T1w', compress=True),
+            name='attnativet1', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+
+        
         workflow.connect([
             (inputnode, ds_bold_t1, [('source_file', 'source_file'),
                                      ('bold_t1', 'in_file')]),
@@ -141,8 +229,28 @@ def init_func_derivatives_wf(
                                          ('bold_t1_ref', 'in_file')]),
             (inputnode, ds_bold_mask_t1, [('source_file', 'source_file'),
                                           ('bold_mask_t1', 'in_file')]),
+            (inputnode,cbfnativet1,[('source_file', 'source_file'),
+                                              ('cbf_t1', 'in_file')]),
+            (inputnode,meancbfnativet1,[('source_file', 'source_file'),
+                                              ('meancbf_t1', 'in_file')]),
+            (inputnode,scorenativet1,[('source_file', 'source_file'),
+                                              ('score_t1', 'in_file')]),
+            (inputnode,meanscorenativet1,[('source_file', 'source_file'),
+                                              ('avgscore_t1', 'in_file')]),
+            (inputnode,scrubnativet1,[('source_file', 'source_file'),
+                                              ('scrub_t1', 'in_file')]),
+            (inputnode,basilnativet1,[('source_file', 'source_file'),
+                                              ('basil_t1', 'in_file')]),
+            (inputnode,pvnativet1,[('source_file', 'source_file'),
+                                              ('pv_t1', 'in_file')]),
             (raw_sources, ds_bold_mask_t1, [('out', 'RawSources')]),
         ])
+
+        if len([metadata['InitialPostLabelDelay']]) > 1:
+            workflow.connect([ (inputnode,attnativet1,[('source_file', 'source_file'),
+                                              ('att_t1', 'in_file')]),
+                    ])    
+
         if freesurfer:
             ds_bold_aseg_t1 = pe.Node(DerivativesDataSink(
                 base_directory=output_dir, space='T1w', desc='aseg', suffix='dseg'),
@@ -197,7 +305,9 @@ def init_func_derivatives_wf(
         )
 
         select_std = pe.Node(KeySelect(
-            fields=['template', 'bold_std', 'bold_std_ref', 'bold_mask_std']),
+            fields=['template', 'bold_std', 'bold_std_ref', 'bold_mask_std',
+            'cbf_std','meancbf_std','att_std','score_std','avgscore_std','scrub_std',
+            'basil_std','pv_std','attb_std']),
             name='select_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         ds_bold_std = pe.Node(
@@ -207,20 +317,68 @@ def init_func_derivatives_wf(
                                 TaskName=metadata.get('TaskName')),
             name='ds_bold_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
         ds_bold_std_ref = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='boldref'),
+            DerivativesDataSink(base_directory=output_dir, suffix='aslref'),
             name='ds_bold_std_ref', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
         ds_bold_mask_std = pe.Node(
             DerivativesDataSink(base_directory=output_dir, desc='brain',
                                 suffix='mask'),
             name='ds_bold_mask_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
 
+        cbfstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='cbf', compress=True),
+            name='cbfstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meancbfstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='mean_cbf', compress=True),
+            name='meancbfstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scorestd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, desc='score',suffix='cbf', compress=True),
+            name='scorestd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        meanscorestd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,desc='score', suffix='mean_cbf', compress=True),
+            name='meanscorestd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        scrubstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, desc='scrub',suffix='cbf', compress=True),
+            name='scrubstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        basilstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,desc='basil',suffix='cbf', compress=True),
+            name='basilstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        pvstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir,desc='pvc',suffix='cbf', compress=True),
+            name='pvcstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+        attstd = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', compress=True),
+            name='attstd', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+
         workflow.connect([
             (inputnode, ds_bold_std, [('source_file', 'source_file')]),
             (inputnode, ds_bold_std_ref, [('source_file', 'source_file')]),
-            (inputnode, ds_bold_mask_std, [('source_file', 'source_file')]),
+            (inputnode, cbfstd, [('source_file', 'source_file')]),
+            (inputnode, meancbfstd, [('source_file', 'source_file')]),
+            (inputnode, scorestd, [('source_file', 'source_file')]),
+            (inputnode, meanscorestd, [('source_file', 'source_file')]),
+            (inputnode, scrubstd, [('source_file', 'source_file')]),
+            (inputnode, basilstd, [('source_file', 'source_file')]),
+            (inputnode, pvstd, [('source_file', 'source_file')]),
+            (inputnode, attstd, [('source_file', 'source_file')]), 
             (inputnode, select_std, [('bold_std', 'bold_std'),
                                      ('bold_std_ref', 'bold_std_ref'),
                                      ('bold_mask_std', 'bold_mask_std'),
+                                     ('cbf_std', 'cbf_std'),
+                                     ('meancbf_std', 'meancbf_std'),
+                                     ('score_std', 'score_std'),
+                                     ('avgscore_std', 'avgscore_std'),
+                                     ('scrub_std', 'scrub_std'),
+                                     ('basil_std', 'basil_std'),
+                                     ('pv_std', 'pv_std'),
+                                     ('att_std', 'att_std'),
                                      ('template', 'template'),
                                      ('spatial_reference', 'keys')]),
             (itersource, select_std, [(('space_definition', _fmt_space), 'key')]),
@@ -230,8 +388,27 @@ def init_func_derivatives_wf(
                                            ('key', 'space')]),
             (select_std, ds_bold_mask_std, [('bold_mask_std', 'in_file'),
                                             ('key', 'space')]),
+            (select_std, cbfstd, [('cbf_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, meancbfstd, [('meancbf_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, scorestd, [('score_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, meanscorestd, [('avgscore_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, scrubstd, [('scrub_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, basilstd, [('basil_std', 'in_file'),
+                                            ('key', 'space')]),
+            (select_std, pvstd, [('pv_std', 'in_file'),
+                                            ('key', 'space')]),
             (raw_sources, ds_bold_mask_std, [('out', 'RawSources')]),
         ])
+
+        if len([metadata['InitialPostLabelDelay']]) > 1:
+            workflow.connect([ (inputnode,attstd,[('source_file', 'source_file'),
+                                              ('att_std', 'in_file')]),
+                    ])  
 
         if freesurfer:
             select_fs_std = pe.Node(KeySelect(

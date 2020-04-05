@@ -446,6 +446,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         spaces=spaces,
         #use_aroma=use_aroma,
     )
+    
+
 
     workflow.connect([
         (outputnode, func_derivatives_wf, [
@@ -469,8 +471,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('cbf_cifti', 'inputnode.cbf_cifti'),
             ('meancbf_t1', 'inputnode.meancbf_t1'),
             ('meancbf_cifti', 'inputnode.meancbf_cifti'),
-            ('att_t1', 'inputnode.att_t1'),
-            ('att_cifti', 'inputnode.att_cifti'),
+            #('att_t1', 'inputnode.att_t1'),
             ('score_t1', 'inputnode.score_t1'),
             ('score_cifti', 'inputnode.score_cifti'),
             ('avgscore_t1', 'inputnode.avgscore_t1'),
@@ -481,11 +482,18 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('basil_cifti', 'inputnode.basil_cifti'),
             ('pv_t1', 'inputnode.pv_t1'),
             ('pv_cifti', 'inputnode.pv_cifti'),
-            ('attb_t1', 'inputnode.attb_t1'),
-            ('attb_cifti', 'inputnode.attb_cifti'),
+            #('attb_t1', 'inputnode.attb_t1'),
         ]),
     ])
+    
+    if len([metadata['InitialPostLabelDelay']]) > 1:
+        workflow.connect([
+        (outputnode, func_derivatives_wf, [
+            ('attb_t1', 'inputnode.attb_t1'),
+            ('att_t1', 'inputnode.att_t1')]),
+        ])    
 
+     
     # Generate a tentative boldref
     bold_reference_wf = init_bold_reference_wf(omp_nthreads=omp_nthreads)
     bold_reference_wf.inputs.inputnode.dummy_scans = dummy_scans
@@ -681,28 +689,40 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
          (bold_bold_trans_wf,compt_cbf_wf,[('outputnode.bold','inputnode.bold'),
                                       ('outputnode.bold_mask','inputnode.bold_mask')]),
          (inputnode,compt_cbf_wf,[('t1w_tpms','inputnode.t1w_tpms')]),
+         (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_t1_to_bold','inputnode.t1_bold_xform')]),
+
      ])
      # register  bold to t1w 
     workflow.connect([
-         (compt_cbf_wf,bold_t1_trans_wf,[('ouputnode.out_cbf','inputnode.cbf'),
+         (compt_cbf_wf,bold_t1_trans_wf,[('outputnode.out_cbf','inputnode.cbf'),
                                       ('outputnode.out_mean','inputnode.meancbf'),
-                                      ('outputnode.out_att','inputnode.att'),
+                                      #('outputnode.out_att','inputnode.att'),
                                       ('outputnode.out_score','inputnode.score'),
                                       ('outputnode.out_avgscore','inputnode.avgscore'),
                                       ('outputnode.out_scrub','inputnode.scrub'),
                                       ('outputnode.out_cbfb','inputnode.basil'),
-                                      ('outputnode.out_cbfpv','inputnode.pv'),
-                                      ('outputnode.out_attb','inputnode.attb')]),
-         (bold_t1_trans_wf,outputnode,[('ouputnode.cbf_t1','cbf_t1'),
-                                      ('outputnode.mean_t1','meancbf_t1'),
-                                      ('outputnode.att_t1','att_t1'),
+                                      ('outputnode.out_cbfpv','inputnode.pv'),]),
+                                      #('outputnode.out_attb','inputnode.attb')]),
+         (bold_t1_trans_wf,outputnode,[('outputnode.cbf_t1','cbf_t1'),
+                                      ('outputnode.meancbf_t1','meancbf_t1'),
+                                      #('outputnode.att_t1','att_t1'),
                                       ('outputnode.score_t1','score_t1'),
                                       ('outputnode.avgscore_t1','avgscore_t1'),
                                       ('outputnode.scrub_t1','scrub_t1'),
                                       ('outputnode.basil_t1','basil_t1'),
-                                      ('outputnode.pv_t1','pv_t1'),
-                                      ('outputnode.attb_t1','attb_t1')]),
+                                      ('outputnode.pv_t1','pv_t1'),]),
+                                      #('outputnode.attb_t1','attb_t1')]),
      ])
+
+
+    if len([metadata['InitialPostLabelDelay']]) > 1:
+        workflow.connect([
+        (compt_cbf_wf,bold_t1_trans_wf,[('outputnode.out_att','inputnode.att'),
+                                      ('outputnode.out_attb','inputnode.attb')]),
+        (bold_t1_trans_wf,outputnode,[('outputnode.attb_t1','attb_t1'),
+                                      ('outputnode.att_t1','att_t1')]),
+        ])
+
 
 
 
@@ -826,6 +846,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
 
     if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
+
         workflow.connect([
             (bold_bold_trans_wf, outputnode, [
                 ('outputnode.bold', 'bold_native')]),
@@ -833,17 +854,20 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.bold_ref', 'inputnode.bold_native_ref'),
                 ('outputnode.bold_mask', 'inputnode.bold_mask_native')]),
             (compt_cbf_wf, func_derivatives_wf, 
-                                      [('ouputnode.out_cbf','inputnode.cbf'),
+                                      [('outputnode.out_cbf','inputnode.cbf'),
                                       ('outputnode.out_mean','inputnode.meancbf'),
-                                      ('outputnode.out_att','inputnode.att'),
                                       ('outputnode.out_score','inputnode.score'),
                                       ('outputnode.out_avgscore','inputnode.avgscore'),
                                       ('outputnode.out_scrub','inputnode.scrub'),
                                       ('outputnode.out_cbfb','inputnode.basil'),
                                       ('outputnode.out_cbfpv','inputnode.pv'),
+                                      ]),
+        ])
+    if len([metadata['InitialPostLabelDelay']]) > 1:
+        workflow.connect([
+        (compt_cbf_wf,func_derivatives_wf,[('outputnode.out_att','inputnode.att'),
                                       ('outputnode.out_attb','inputnode.attb')]),
         ])
-
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         # Apply transforms in 1 shot
         # Only use uncompressed output if AROMA is to be run
@@ -874,16 +898,20 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_std_trans_wf, outputnode, [('outputnode.bold_std', 'bold_std'),
                                              ('outputnode.bold_std_ref', 'bold_std_ref'),
                                              ('outputnode.bold_mask_std', 'bold_mask_std')]),
-            (compt_cbf_wf,bold_std_trans_wf,[('outputnode.out_cbf,inputnode.cbf'),
-                                            ('outputnode.out_mean,inputnode.meancbf'),
-                                            ('outputnode.out_att,inputnode.att'),
-                                            ('outputnode.out_score,inputnode.score'),
-                                            ('outputnode.out_avgscore,inputnode.avgscore'),
-                                            ('outputnode.out_scrub,inputnode.scrub'),
-                                            ('outputnode.out_cbfb,inputnode.basil'),
-                                            ('outputnode.out_cbfpv,inputnode.pv'),
-                                            ('outputnode.out_attb,inputnode.attb')])
+            (compt_cbf_wf,bold_std_trans_wf,[('outputnode.out_cbf','inputnode.cbf'),
+                                            ('outputnode.out_mean','inputnode.meancbf'),
+                                            ('outputnode.out_score','inputnode.score'),
+                                            ('outputnode.out_avgscore','inputnode.avgscore'),
+                                            ('outputnode.out_scrub','inputnode.scrub'),
+                                            ('outputnode.out_cbfb','inputnode.basil'),
+                                            ('outputnode.out_cbfpv','inputnode.pv'),
+                                           ]),
              ])
+
+        if len([metadata['InitialPostLabelDelay']]) > 1:
+            workflow.connect([
+                (compt_cbf_wf,bold_std_trans_wf,[('outputnode.out_att','inputnode.att'),
+                                      ('outputnode.out_attb','inputnode.attb')]),])
 
 
 
@@ -946,17 +974,23 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.bold_std_ref', 'inputnode.bold_std_ref'),
                 ('outputnode.bold_std', 'inputnode.bold_std'),
                 ('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
-                ('outputnode.cbf_std,inputnode.cbf_std'),
-                ('outputnode.meancbf_std,inputnode.meancbf_std'),
-                ('outputnode.att_std,inputnode.att_std'),
-                ('outputnode.score_std,inputnode.score_std'),
-                ('outputnode.avgscore_std,inputnode.avgscore_std'),
-                ('outputnode.scrub_std,inputnode.scrub_std'),
-                ('outputnode.basil_std,inputnode.basil_std'),
-                ('outputnode.pv_std,inputnode.pv_std'),
-                ('outputnode.attb_std,inputnode.attb_std'),]),
+                ('outputnode.cbf_std','inputnode.cbf_std'),
+                ('outputnode.meancbf_std','inputnode.meancbf_std'),
+                #('outputnode.att_std','inputnode.att_std'),
+                ('outputnode.score_std','inputnode.score_std'),
+                ('outputnode.avgscore_std','inputnode.avgscore_std'),
+                ('outputnode.scrub_std','inputnode.scrub_std'),
+                ('outputnode.basil_std','inputnode.basil_std'),
+                ('outputnode.pv_std','inputnode.pv_std'),
+                ('outputnode.attb_std','inputnode.attb_std'),]),
            
         ])
+
+        if len([metadata['InitialPostLabelDelay']]) > 1:
+            workflow.connect([
+                (bold_std_trans_wf,func_derivatives_wf,[('outputnode.att_std','inputnode.att_std'),
+                                      ('outputnode.attb_std','inputnode.attb_std')]),])
+
 
         #if use_aroma:  # ICA-AROMA workflow
             #rom .confounds import init_ica_aroma_wf

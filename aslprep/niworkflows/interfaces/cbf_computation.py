@@ -151,7 +151,7 @@ class computeCBF(SimpleInterface):
         cbf_data=nb.load(self.inputs.in_cbf).get_fdata()
         cbf1=np.zeros(cbf_data.shape)
         for i in range(cbf_data.shape[3]):
-                cbf1[:,:,:,i]=np.divide(cbf_data[:,:,:,i],(m0scale*avg_control))
+                cbf1[:,:,:,i]=mask*(np.divide(cbf_data[:,:,:,i],(m0scale*avg_control)))
         #m1=m0scale*m0_data
         #cbf1=np.divide(cbf_data,m1)
         # for compute cbf for each PLD and TI 
@@ -168,11 +168,11 @@ class computeCBF(SimpleInterface):
             deltaM2=np.zeros(np.concatenate(avg_control.shape,len(perfusion_factor)))
             for i in range(len(perfusion_factor)):
                 deltaM2[:,:,:,i]=deltaM[:,:,:,i]*plds[i]
-            att=np.sum(deltaM2,axis=4)/np.sum(deltaM,axis=4)
+            att=mask*(np.sum(deltaM2,axis=4)/np.sum(deltaM,axis=4))
         else:
             cbf=cbf1*perfusion_factor
         ## cbf is timeseries
-        meancbf=np.mean(cbf,axis=3)
+        meancbf=mask*(np.mean(cbf,axis=3))
         self._results['out_cbf'] = fname_presuffix(self.inputs.in_cbf,
                                                    suffix='_cbf', newpath=runtime.cwd)
         self._results['out_mean'] = fname_presuffix(self.inputs.in_cbf,
@@ -494,35 +494,38 @@ class BASILCBF(FSLCommand):
 
     def _run_interface(self, runtime):
         import shutil
-        if os.path.isdir(self.inputs.out_basename+'/native_space'):
-            shutil.rmtree(self.inputs.out_basename+'/native_space')
-            shutil.rmtree(self.inputs.out_basename+'/calib')    
+        #if os.path.isdir(self.inputs.out_basename+'/native_space'):
+            #shutil.rmtree(self.inputs.out_basename+'/native_space')
+            #shutil.rmtree(self.inputs.out_basename+'/calib')    
         runtime = super(BASILCBF, self)._run_interface(runtime)
+        return runtime
+    
+    def _gen_outfilename(self,suffix):
+        if isdefined(self.inputs.in_file):
+            out_file = self._gen_fname(self.inputs.in_file, suffix=suffix)
+        return os.path.abspath(out_file)
+    
+    def _list_outputs(self):
         outputs = self.output_spec().get()
         #outputs["out_cbfb"]=self.inputs.out_basename+'/basilcbf.nii.gz'
-        outputs["out_cbfb"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasil', newpath=runtime.cwd)
+        outputs["out_cbfb"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasil')
         from shutil import copyfile
         copyfile(self.inputs.out_basename+'/native_space/perfusion_calib.nii.gz',outputs["out_cbfb"])
         if len(np.array([self.inputs.tis])) > 1:
             #outputs["out_att"]=self.inputs.out_basename+'/arrivaltime.nii.gz'
-            outputs["out_att"]=fname_presuffix(self.inputs.in_file,suffix='_arrivaltime', newpath=runtime.cwd)
+            outputs["out_att"]=fname_presuffix(self.inputs.in_file,suffix='_arrivaltime')
             copyfile(self.inputs.out_basename+'/native_space/arrival.nii.gz',outputs["out_att"])
             self.inputs.out_att=os.path.abspath(outputs["out_att"])
-        else:
-            outputs["out_attb"]=Undefined
-        if self.inputs.pvc:
-            #outputs["out_cbfpv"]=self.inputs.out_basename+'/basilcbfpv.nii.gz'
-            outputs["out_cbfpv"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasilpv', newpath=runtime.cwd)
-            copyfile(self.inputs.out_basename+'/native_space/pvcorr/perfusion_calib.nii.gz',outputs["out_cbfpv"])
-        else:
-            outputs["out_cbfpv"]=Undefined  
-        if runtime.stderr:
-             self.raise_exception(runtime)
-        shutil.rmtree(self.inputs.out_basename+'/native_space')
-        shutil.rmtree(self.inputs.out_basename+'/calib')
-
+    
+        
+        #outputs["out_cbfpv"]=self.inputs.out_basename+'/basilcbfpv.nii.gz'
+        outputs["out_cbfpv"]=fname_presuffix(self.inputs.in_file,suffix='_cbfbasilpv')
+        copyfile(self.inputs.out_basename+'/native_space/pvcorr/perfusion_calib.nii.gz',outputs["out_cbfpv"])
         self.inputs.out_cbfb=os.path.abspath(outputs["out_cbfb"])
         self.inputs.out_cbfpv=os.path.abspath(outputs["out_cbfpv"])
-        return runtime
+        return outputs
+
+
+        
 
     

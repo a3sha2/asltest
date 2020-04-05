@@ -12,6 +12,7 @@ from itertools import compress
 from collections import defaultdict
 from pkg_resources import resource_filename as pkgrf
 from bids.layout import BIDSLayout, add_config_paths
+from ...pybids.layout import BIDSLayout,add_config_paths
 
 import jinja2
 from nipype.utils.filemanip import copyfile
@@ -211,35 +212,6 @@ class Report(object):
     all reportlets.
 
 
-    .. testsetup::
-
-    >>> cwd = os.getcwd()
-    >>> os.chdir(tmpdir)
-
-    >>> from pkg_resources import resource_filename
-    >>> from shutil import copytree
-    >>> from bids.layout import BIDSLayout
-    >>> test_data_path = resource_filename('niworkflows', 'data/tests/work')
-    >>> testdir = Path(tmpdir)
-    >>> data_dir = copytree(test_data_path, str(testdir / 'work'))
-    >>> out_figs = testdir / 'out' / 'fmriprep'
-
-    .. doctest::
-
-    >>> robj = Report(testdir / 'work' / 'reportlets', testdir / 'out',
-    ...               'madeoutuuid', subject_id='01', packagename='fmriprep')
-    >>> robj.layout.get(subject='01', desc='reconall')  # doctest: +ELLIPSIS
-    [<BIDSFile filename='.../anat/sub-01_desc-reconall_T1w.svg'>]
-
-    >>> robj.generate_report()
-    0
-    >>> len((testdir / 'out' / 'fmriprep' / 'sub-01.html').read_text())
-    36425
-
-    .. testcleanup::
-
-    >>> os.chdir(cwd)
-
     """
 
     def __init__(self, reportlets_dir, out_dir, run_uuid, config=None,
@@ -437,28 +409,6 @@ def run_reports(reportlets_dir, out_dir, subject_label, run_uuid, config=None,
                 packagename=None):
     """
     Runs the reports
-
-    .. testsetup::
-
-    >>> cwd = os.getcwd()
-    >>> os.chdir(tmpdir)
-
-    >>> from pkg_resources import resource_filename
-    >>> from shutil import copytree
-    >>> test_data_path = resource_filename('niworkflows', 'data/tests/work')
-    >>> testdir = Path(tmpdir)
-    >>> data_dir = copytree(test_data_path, str(testdir / 'work'))
-    >>> (testdir / 'fmriprep').mkdir(parents=True, exist_ok=True)
-
-    .. doctest::
-
-    >>> run_reports(testdir / 'work' / 'reportlets', testdir / 'out',
-    ...             '01', 'madeoutuuid', packagename='fmriprep')
-    0
-
-    .. testcleanup::
-
-    >>> os.chdir(cwd)
 
     """
     report = Report(reportlets_dir, out_dir, run_uuid, config=config,

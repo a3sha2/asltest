@@ -362,43 +362,47 @@ preprocessed BOLD runs*: {tpl}.
         name='bold_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     cbf_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True,input_image_type=3,
+        dimension=3),
         name='cbf_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
+    score_to_std_transform = pe.Node(
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True,input_image_type=3,
+        dimension=3),
+        name='score_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
+    
     meancbf_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='meancbf_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     att_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='att_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
-    score_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
-        name='score_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     avgscore_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='avgscore_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
 
     scrub_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='scrub_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     basil_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='basil_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     pv_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='pv_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     
     attb_to_std_transform = pe.Node(
-        MultiApplyTransforms(interpolation="LanczosWindowedSinc", float=True, copy_dtype=True),
+        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='attb_to_std_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
 
     merge = pe.Node(Merge(compress=use_compression), name='merge',
                     mem_gb=mem_gb * 3)
+    
 
     # Generate a reference on the target standard space
     gen_final_ref = init_bold_reference_wf(
@@ -458,51 +462,52 @@ preprocessed BOLD runs*: {tpl}.
         (gen_final_ref, poutputnode, [('outputnode.ref_image', 'bold_std_ref')]),
         (mask_std_tfm, poutputnode, [('output_image', 'bold_mask_std')]),
         (select_std, poutputnode, [('key', 'template')]),
-
+        
         (merge_xforms, cbf_to_std_transform, [('out', 'transforms')]),
         (gen_ref, cbf_to_std_transform, [('out_file', 'reference_image')]),
-        (inputnode, cbf_to_std_transform, [('cbf', 'input_image')]),
-        (cbf_to_std_transform, poutputnode, [('out_files', 'cbf_std')]),
+        (inputnode,cbf_to_std_transform,[('cbf','input_image')]),
+        (cbf_to_std_transform, poutputnode, [('output_image', 'cbf_std')]),
+
+        
+        (merge_xforms, score_to_std_transform, [('out', 'transforms')]),
+        (gen_ref, score_to_std_transform, [('out_file', 'reference_image')]),
+        (inputnode,score_to_std_transform,[('score','input_image')]),
+        (score_to_std_transform, poutputnode, [('output_image', 'score_std')]),
 
         (merge_xforms, meancbf_to_std_transform, [('out', 'transforms')]),
         (gen_ref, meancbf_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, meancbf_to_std_transform, [('cbf', 'input_image')]),
-        (meancbf_to_std_transform, poutputnode, [('out_files', 'meancbf_std')]),
+        (meancbf_to_std_transform, poutputnode, [('output_image', 'meancbf_std')]),
 
         (merge_xforms, att_to_std_transform, [('out', 'transforms')]),
         (gen_ref, att_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, att_to_std_transform, [('att', 'input_image')]),
-        (att_to_std_transform, poutputnode, [('out_files', 'att_std')]),
-
-        (merge_xforms, score_to_std_transform, [('out', 'transforms')]),
-        (gen_ref, score_to_std_transform, [('out_file', 'reference_image')]),
-        (inputnode, score_to_std_transform, [('score', 'input_image')]),
-        (score_to_std_transform, poutputnode, [('out_files', 'score_std')]),
+        (att_to_std_transform, poutputnode, [('output_image', 'att_std')]),
 
         (merge_xforms, avgscore_to_std_transform, [('out', 'transforms')]),
         (gen_ref, avgscore_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, avgscore_to_std_transform, [('avgscore', 'input_image')]),
-        (avgscore_to_std_transform, poutputnode, [('out_files', 'avgscore_std')]),
+        (avgscore_to_std_transform, poutputnode, [('output_image', 'avgscore_std')]),
 
         (merge_xforms, scrub_to_std_transform, [('out', 'transforms')]),
         (gen_ref, scrub_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, scrub_to_std_transform, [('scrub', 'input_image')]),
-        (scrub_to_std_transform, poutputnode, [('out_files', 'scrub_std')]),
+        (scrub_to_std_transform, poutputnode, [('output_image', 'scrub_std')]),
 
         (merge_xforms, basil_to_std_transform, [('out', 'transforms')]), 
         (gen_ref, basil_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, basil_to_std_transform, [('basil', 'input_image')]),
-        (basil_to_std_transform, poutputnode, [('out_files', 'basil_std')]),
+        (basil_to_std_transform, poutputnode, [('output_image', 'basil_std')]),
 
         (merge_xforms, pv_to_std_transform, [('out', 'transforms')]), 
         (gen_ref, pv_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, pv_to_std_transform, [('pv', 'input_image')]),
-        (pv_to_std_transform, poutputnode, [('out_files', 'pv_std')]),
+        (pv_to_std_transform, poutputnode, [('output_image', 'pv_std')]),
 
         (merge_xforms, attb_to_std_transform, [('out', 'transforms')]), 
         (gen_ref, attb_to_std_transform, [('out_file', 'reference_image')]),
         (inputnode, attb_to_std_transform, [('attb', 'input_image')]),
-        (attb_to_std_transform, poutputnode, [('out_files', 'attb_std')]),
+        (attb_to_std_transform, poutputnode, [('output_image', 'attb_std')]),
 
 
     ])
