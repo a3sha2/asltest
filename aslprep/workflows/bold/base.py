@@ -981,8 +981,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.avgscore_std','inputnode.avgscore_std'),
                 ('outputnode.scrub_std','inputnode.scrub_std'),
                 ('outputnode.basil_std','inputnode.basil_std'),
-                ('outputnode.pv_std','inputnode.pv_std'),
-                ('outputnode.attb_std','inputnode.attb_std'),]),
+                ('outputnode.pv_std','inputnode.pv_std'),]),
            
         ])
 

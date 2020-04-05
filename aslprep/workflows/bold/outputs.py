@@ -367,7 +367,6 @@ def init_func_derivatives_wf(
             (inputnode, scrubstd, [('source_file', 'source_file')]),
             (inputnode, basilstd, [('source_file', 'source_file')]),
             (inputnode, pvstd, [('source_file', 'source_file')]),
-            (inputnode, attstd, [('source_file', 'source_file')]), 
             (inputnode, select_std, [('bold_std', 'bold_std'),
                                      ('bold_std_ref', 'bold_std_ref'),
                                      ('bold_mask_std', 'bold_mask_std'),
@@ -378,7 +377,6 @@ def init_func_derivatives_wf(
                                      ('scrub_std', 'scrub_std'),
                                      ('basil_std', 'basil_std'),
                                      ('pv_std', 'pv_std'),
-                                     ('att_std', 'att_std'),
                                      ('template', 'template'),
                                      ('spatial_reference', 'keys')]),
             (itersource, select_std, [(('space_definition', _fmt_space), 'key')]),
@@ -408,6 +406,9 @@ def init_func_derivatives_wf(
         if len([metadata['InitialPostLabelDelay']]) > 1:
             workflow.connect([ (inputnode,attstd,[('source_file', 'source_file'),
                                               ('att_std', 'in_file')]),
+                                (inputnode, select_std,[('att_std', 'att_std')]),
+                                (select_std, attstd, [('att_std', 'in_file'),
+                                            ('key', 'space')]),
                     ])  
 
         if freesurfer:
