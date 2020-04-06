@@ -413,11 +413,10 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 'bold_std', 'bold_std_ref', 'bold_mask_std', 'bold_aseg_std', 'bold_aparc_std',
                 'bold_native', 'bold_cifti',
                 'cbf_t1','cbf_std', 'cbf_cifti','meancbf_t1','meancbf_std','meancbf_cifti',
-                'att_t1','att_std','score_t1','score_std','score_cifti',
+                'score_t1','score_std','score_cifti',
                 'avgscore_t1', 'avgscore_std', 'avgscore_cifti',
                 'scrub_t1','scrub_std', 'scrub_cifti','basil_t1','basil_std',
                 'basil_cifti','pv_t1','pv_std','pv_native', 'pv_cifti',
-                'attb_t1','attb_std',
                 'cifti_variant', 'cifti_metadata', 'cifti_density',
                 'surfaces', 'confounds', 'aroma_noise_ics', 'melodic_mix', 'nonaggr_denoised_file',
                 'confounds_metadata']),
@@ -471,7 +470,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('cbf_cifti', 'inputnode.cbf_cifti'),
             ('meancbf_t1', 'inputnode.meancbf_t1'),
             ('meancbf_cifti', 'inputnode.meancbf_cifti'),
-            #('att_t1', 'inputnode.att_t1'),
+
             ('score_t1', 'inputnode.score_t1'),
             ('score_cifti', 'inputnode.score_cifti'),
             ('avgscore_t1', 'inputnode.avgscore_t1'),
@@ -482,16 +481,9 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ('basil_cifti', 'inputnode.basil_cifti'),
             ('pv_t1', 'inputnode.pv_t1'),
             ('pv_cifti', 'inputnode.pv_cifti'),
-            #('attb_t1', 'inputnode.attb_t1'),
         ]),
     ])
-    
-    if len([metadata['InitialPostLabelDelay']]) > 1:
-        workflow.connect([
-        (outputnode, func_derivatives_wf, [
-            ('attb_t1', 'inputnode.attb_t1'),
-            ('att_t1', 'inputnode.att_t1')]),
-        ])    
+       
 
      
     # Generate a tentative boldref
@@ -684,44 +676,38 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         # Summary
         (outputnode, summary, [('confounds', 'confounds_file')]),
     ])
+   
     # cbf computation workflow 
     workflow.connect([
          (bold_bold_trans_wf,compt_cbf_wf,[('outputnode.bold','inputnode.bold'),
                                       ('outputnode.bold_mask','inputnode.bold_mask')]),
          (inputnode,compt_cbf_wf,[('t1w_tpms','inputnode.t1w_tpms')]),
          (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_t1_to_bold','inputnode.t1_bold_xform')]),
+         (inputnode,compt_cbf_wf,[('t1w_mask','inputnode.t1w_mask')]),
 
      ])
+    
+
      # register  bold to t1w 
     workflow.connect([
          (compt_cbf_wf,bold_t1_trans_wf,[('outputnode.out_cbf','inputnode.cbf'),
                                       ('outputnode.out_mean','inputnode.meancbf'),
-                                      #('outputnode.out_att','inputnode.att'),
                                       ('outputnode.out_score','inputnode.score'),
                                       ('outputnode.out_avgscore','inputnode.avgscore'),
                                       ('outputnode.out_scrub','inputnode.scrub'),
                                       ('outputnode.out_cbfb','inputnode.basil'),
                                       ('outputnode.out_cbfpv','inputnode.pv'),]),
-                                      #('outputnode.out_attb','inputnode.attb')]),
+                                      
          (bold_t1_trans_wf,outputnode,[('outputnode.cbf_t1','cbf_t1'),
                                       ('outputnode.meancbf_t1','meancbf_t1'),
-                                      #('outputnode.att_t1','att_t1'),
                                       ('outputnode.score_t1','score_t1'),
                                       ('outputnode.avgscore_t1','avgscore_t1'),
                                       ('outputnode.scrub_t1','scrub_t1'),
                                       ('outputnode.basil_t1','basil_t1'),
                                       ('outputnode.pv_t1','pv_t1'),]),
-                                      #('outputnode.attb_t1','attb_t1')]),
+                                    
      ])
 
-
-    if len([metadata['InitialPostLabelDelay']]) > 1:
-        workflow.connect([
-        (compt_cbf_wf,bold_t1_trans_wf,[('outputnode.out_att','inputnode.att'),
-                                      ('outputnode.out_attb','inputnode.attb')]),
-        (bold_t1_trans_wf,outputnode,[('outputnode.attb_t1','attb_t1'),
-                                      ('outputnode.att_t1','att_t1')]),
-        ])
 
 
 
@@ -863,11 +849,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                       ('outputnode.out_cbfpv','inputnode.pv'),
                                       ]),
         ])
-    if len([metadata['InitialPostLabelDelay']]) > 1:
-        workflow.connect([
-        (compt_cbf_wf,func_derivatives_wf,[('outputnode.out_att','inputnode.att'),
-                                      ('outputnode.out_attb','inputnode.attb')]),
-        ])
+    
     if spaces.get_spaces(nonstandard=False, dim=(3,)):
         # Apply transforms in 1 shot
         # Only use uncompressed output if AROMA is to be run
@@ -908,11 +890,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                            ]),
              ])
 
-        if len([metadata['InitialPostLabelDelay']]) > 1:
-            workflow.connect([
-                (compt_cbf_wf,bold_std_trans_wf,[('outputnode.out_att','inputnode.att'),
-                                      ('outputnode.out_attb','inputnode.attb')]),])
-
+        
 
 
         if freesurfer:
@@ -976,7 +954,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.bold_mask_std', 'inputnode.bold_mask_std'),
                 ('outputnode.cbf_std','inputnode.cbf_std'),
                 ('outputnode.meancbf_std','inputnode.meancbf_std'),
-                #('outputnode.att_std','inputnode.att_std'),
                 ('outputnode.score_std','inputnode.score_std'),
                 ('outputnode.avgscore_std','inputnode.avgscore_std'),
                 ('outputnode.scrub_std','inputnode.scrub_std'),
@@ -984,11 +961,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('outputnode.pv_std','inputnode.pv_std'),]),
            
         ])
-
-        if len([metadata['InitialPostLabelDelay']]) > 1:
-            workflow.connect([
-                (bold_std_trans_wf,func_derivatives_wf,[('outputnode.att_std','inputnode.att_std'),
-                                      ('outputnode.attb_std','inputnode.attb_std')]),])
 
 
         #if use_aroma:  # ICA-AROMA workflow
@@ -1186,3 +1158,5 @@ def _to_join(in_file, join_file):
         return in_file
     res = JoinTSVColumns(in_file=in_file, join_file=join_file).run()
     return res.outputs.out_file
+
+

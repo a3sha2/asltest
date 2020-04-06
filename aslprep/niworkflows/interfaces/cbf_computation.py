@@ -3,8 +3,6 @@ import os
 import numpy as np
 import pandas as pd
 import nibabel as nb
-
-
 from nipype import logging
 from nipype.utils.filemanip import fname_presuffix,split_filename,copyfiles
 from nipype.interfaces.base import (
@@ -12,8 +10,55 @@ from nipype.interfaces.base import (
     File, InputMultiPath, OutputMultiPath, isdefined,Undefined)
 from nipype.interfaces.fsl.base import (FSLCommand, FSLCommandInputSpec, Info)
 from nipype.interfaces import fsl
+from nipype.interfaces.ants import ApplyTransforms
 
 LOGGER = logging.getLogger('nipype.interface')
+
+
+
+class _refinemaskInputSpec(BaseInterfaceInputSpec):
+    in_t1mask=File(exists=True,mandatory=True,desc='t1 mask')
+    in_boldmask=File(exists=True,mandatory=True,desct='bold mask')
+    transforms=File(exists=True,mandatory=True,desc='transfom')
+    out_mask=File(exists=False,mandatory=False,desc='output mask')
+    out_tmp=File(exists=False,mandatory=False,desc='tmp mask')
+
+class _refinemaskOutputSpec(TraitedSpec):
+    out_mask=File(exists=False,desc='output mask')
+    out_tmp=File(exists=False,desc='tmp mask')
+
+class refinemask(SimpleInterface):
+    input_spec = _refinemaskInputSpec
+    output_spec =_refinemaskOutputSpec
+
+    def _run_interface(self, runtime):
+        self._results['out_tmp'] = fname_presuffix(self.inputs.in_boldmask,
+                                                   suffix='_tempmask', newpath=runtime.cwd)
+        self._results['out_mask'] = fname_presuffix(self.inputs.in_boldmask,
+                                                   suffix='_refinemask', newpath=runtime.cwd)                      
+        b1=ApplyTransforms()
+        b1.inputs.dimension=3
+        b1.inputs.float=True
+        b1.inputs.input_image=self.inputs.in_t1mask
+        b1.inputs.interpolation='NearestNeighbor'
+        b1.inputs.reference_image=self.inputs.in_boldmask
+        b1.inputs.transforms=self.inputs.transforms
+        b1.inputs.input_image_type=3
+        b1.inputs.output_image=self._results['out_tmp']
+        b1.run()
+
+        from nipype.interfaces.fsl import MultiImageMaths
+        mat1 = MultiImageMaths()
+        mat1.inputs.in_file =self._results['out_tmp']
+        mat1.inputs.op_string = " -mul  %s -bin"
+        mat1.inputs.operand_files=self.inputs.in_boldmask
+        mat1.inputs.out_file = self._results['out_mask']
+        mat1.run()
+        self.inputs.out_mask=os.path.abspath(self._results['out_mask'])
+        return runtime
+
+
+
 
 
 class _extractCBFInputSpec(BaseInterfaceInputSpec):
@@ -28,11 +73,15 @@ class _extractCBFOutputSpec(TraitedSpec):
     out_file = File(exists=False, desc='cbf timeries data')
     out_avg = File(exists=False, desc='average control')
 
+    
+
+
 
 class extractCBF(SimpleInterface):
     """
     extract  CBF timeseries
     by substracting label from control
+    or viceversa
 
     """
 

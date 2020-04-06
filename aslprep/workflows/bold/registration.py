@@ -263,16 +263,14 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
             fields=['name_source', 'ref_bold_brain', 'ref_bold_mask',
                     't1w_brain', 't1w_mask', 't1w_aseg', 't1w_aparc',
                     'bold_split', 'fieldwarp', 'hmc_xforms', 'cbf','meancbf',
-                    'att','score','avgscore','scrub','basil','pv','attb',
-                    'itk_bold_to_t1']),
+                    'score','avgscore','scrub','basil','pv','itk_bold_to_t1']),
         name='inputnode'
     )
 
     outputnode = pe.Node(
         niu.IdentityInterface(fields=[
             'bold_t1', 'bold_t1_ref', 'bold_mask_t1','bold_aseg_t1', 'bold_aparc_t1',
-            'cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1','scrub_t1','basil_t1','pv_t1',
-            'attb_t1',]),
+            'cbf_t1','meancbf_t1','score_t1','avgscore_t1','scrub_t1','basil_t1','pv_t1']),
         name='outputnode'
     )
 
@@ -327,9 +325,6 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
         ApplyTransforms(interpolation="LanczosWindowedSinc", float=True,input_image_type=3,
         dimension=3),
         name='score_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
-    att_to_t1w_transform = pe.Node(
-        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
-        name='att_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
     avgscore_to_t1w_transform = pe.Node(
         ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='avgscore_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
@@ -342,10 +337,7 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
     pv_to_t1w_transform = pe.Node(
         ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
         name='pv_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
-    attb_to_t1w_transform = pe.Node(
-        ApplyTransforms(interpolation="LanczosWindowedSinc", float=True),
-        name='attb_to_t1w_transform', mem_gb=mem_gb * 3 * omp_nthreads, n_procs=omp_nthreads)
-
+    
 
 
 
@@ -438,18 +430,6 @@ def init_bold_t1_trans_wf(freesurfer, mem_gb, omp_nthreads, multiecho=False, use
         (pv_to_t1w_transform,outputnode,[('output_image','pv_t1')]),
         (inputnode, pv_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
         (gen_ref, pv_to_t1w_transform, [('out_file', 'reference_image')]),
-        
-
-        (inputnode,attb_to_t1w_transform,[('attb','input_image')]),
-        (attb_to_t1w_transform,outputnode,[('output_image','attb_t1')]),
-        (inputnode, attb_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
-        (gen_ref, attb_to_t1w_transform, [('out_file', 'reference_image')]),
-        
-
-        (inputnode,att_to_t1w_transform,[('att','input_image')]),
-        (att_to_t1w_transform,outputnode,[('output_image','att_t1')]),
-        (inputnode, att_to_t1w_transform, [('itk_bold_to_t1', 'transforms')]),
-        (gen_ref, att_to_t1w_transform, [('out_file', 'reference_image')]),
     ])
 
     return workflow

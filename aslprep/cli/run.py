@@ -263,7 +263,7 @@ https://aslprep.readthedocs.io/en/%s/spaces.html""" % (currentv.base_version
                               'world usage crucial for obtaining funding.')
     g_other.add_argument('--sloppy', action='store_true', default=False,
                          help='Use low-quality tools for speed - TESTING ONLY')
-    g_other.add_argument('--pcasl', action='store_true', default=False,
+    g_other.add_argument('--pcasl', action='store_true', default=True,
                          help='Use low-quality tools for speed - TESTING ONLY')
 
     latest = check_latest()

@@ -65,9 +65,9 @@ def init_func_derivatives_wf(
         'bold_mask_native', 'cifti_variant', 'cifti_metadata', 'cifti_density',
         'confounds', 'confounds_metadata', 'source_file', 'surf_files', 'surf_refs', 
         'template', 'spatial_reference','cbf','meancbf','att','score','avgscore',
-        'scrub','basil','pv','attb','cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1',
-        'scrub_t1','basil_t1','pv_t1','attb_t1','cbf_std','meancbf_std','att_std','score_std',
-        'avgscore_std','scrub_std','basil_std','pv_std','attb_std','cbf_cifti','meancbf_cifti',
+        'scrub','basil','pv','cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1',
+        'scrub_t1','basil_t1','pv_t1','cbf_std','meancbf_std','att_std','score_std',
+        'avgscore_std','scrub_std','basil_std','pv_std','cbf_cifti','meancbf_cifti',
         'score_cifti','avgscore_cifti','scrub_cifti','basil_cifti','pv_cifti']),
         name='inputnode')
 
@@ -305,9 +305,9 @@ def init_func_derivatives_wf(
         )
 
         select_std = pe.Node(KeySelect(
-            fields=['template', 'bold_std', 'bold_std_ref', 'bold_mask_std',
-            'cbf_std','meancbf_std','att_std','score_std','avgscore_std','scrub_std',
-            'basil_std','pv_std','attb_std']),
+            fields=['template', 'bold_std','bold_std_ref','bold_mask_std',
+            'cbf_std','meancbf_std','score_std','avgscore_std','scrub_std',
+            'basil_std','pv_std']),
             name='select_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         ds_bold_std = pe.Node(
@@ -352,14 +352,12 @@ def init_func_derivatives_wf(
             DerivativesDataSink(base_directory=output_dir,desc='pvc',suffix='cbf', compress=True),
             name='pvcstd', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
-        attstd = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', compress=True),
-            name='attstd', run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
+    
 
         workflow.connect([
             (inputnode, ds_bold_std, [('source_file', 'source_file')]),
             (inputnode, ds_bold_std_ref, [('source_file', 'source_file')]),
+            (inputnode, ds_bold_mask_std,[('source_file', 'source_file')]),
             (inputnode, cbfstd, [('source_file', 'source_file')]),
             (inputnode, meancbfstd, [('source_file', 'source_file')]),
             (inputnode, scorestd, [('source_file', 'source_file')]),
@@ -403,13 +401,7 @@ def init_func_derivatives_wf(
             (raw_sources, ds_bold_mask_std, [('out', 'RawSources')]),
         ])
 
-        if len([metadata['InitialPostLabelDelay']]) > 1:
-            workflow.connect([ (inputnode,attstd,[('source_file', 'source_file'),
-                                              ('att_std', 'in_file')]),
-                                (inputnode, select_std,[('att_std', 'att_std')]),
-                                (select_std, attstd, [('att_std', 'in_file'),
-                                            ('key', 'space')]),
-                    ])  
+    
 
         if freesurfer:
             select_fs_std = pe.Node(KeySelect(
