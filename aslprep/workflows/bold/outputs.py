@@ -64,11 +64,10 @@ def init_func_derivatives_wf(
         'bold_std_ref', 'bold_t1', 'bold_t1_ref', 'bold_native', 'bold_native_ref',
         'bold_mask_native', 'cifti_variant', 'cifti_metadata', 'cifti_density',
         'confounds', 'confounds_metadata', 'source_file', 'surf_files', 'surf_refs', 
-        'template', 'spatial_reference','cbf','meancbf','att','score','avgscore',
+        'template', 'spatial_reference','cbf','meancbf','score','avgscore',
         'scrub','basil','pv','cbf_t1','meancbf_t1','att_t1','score_t1','avgscore_t1',
-        'scrub_t1','basil_t1','pv_t1','cbf_std','meancbf_std','att_std','score_std',
-        'avgscore_std','scrub_std','basil_std','pv_std','cbf_cifti','meancbf_cifti',
-        'score_cifti','avgscore_cifti','scrub_cifti','basil_cifti','pv_cifti']),
+        'scrub_t1','basil_t1','pv_t1','cbf_std','meancbf_std','score_std',
+        'avgscore_std','scrub_std','basil_std','pv_std','qc_file']),
         name='inputnode')
 
     raw_sources = pe.Node(niu.Function(function=_bids_relative), name='raw_sources')
@@ -78,6 +77,8 @@ def init_func_derivatives_wf(
         base_directory=output_dir, desc='confounds', suffix='regressors'),
         name="ds_confounds", run_without_submitting=True,
         mem_gb=DEFAULT_MEMORY_MIN_GB)
+    
+    
     workflow.connect([
         (inputnode, raw_sources, [('source_file', 'in_files')]),
         (inputnode, ds_confounds, [('source_file', 'source_file'),
@@ -85,6 +86,18 @@ def init_func_derivatives_wf(
                                    ('confounds_metadata', 'meta_dict')]),
     ])
 
+    qcfile = pe.Node(
+            DerivativesDataSink(base_directory=output_dir, suffix='cbfqc', compress=False),
+            name='qcfile', run_without_submitting=True,
+            mem_gb=DEFAULT_MEMORY_MIN_GB)
+    workflow.connect([
+        #(inputnode, raw_sources, [('source_file', 'in_files')]),
+        (inputnode,qcfile,[('source_file', 'source_file'),
+                                 ('qc_file', 'in_file')]),
+    ])
+
+
+    
     if nonstd_spaces.intersection(('func', 'run', 'bold', 'boldref', 'sbref')):
         ds_bold_native = pe.Node(
             DerivativesDataSink(base_directory=output_dir, desc='preproc',
@@ -130,10 +143,7 @@ def init_func_derivatives_wf(
             DerivativesDataSink(base_directory=output_dir, suffix='pvc_cbf', compress=True),
             name='pvcnative', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
-        attnative = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', compress=True),
-            name='attnative', run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
+       
         
 
         workflow.connect([
@@ -159,13 +169,7 @@ def init_func_derivatives_wf(
                                               ('pv', 'in_file')]),
             (raw_sources, ds_bold_mask_native, [('out', 'RawSources')]),
         ])
-
-
-        if len([metadata['InitialPostLabelDelay']]) > 1:
-            workflow.connect([ 
-                     (inputnode,attnative,[('source_file', 'source_file'),
-                                              ('att', 'in_file')]),
-                    ])    
+  
 
     # Resample to T1w space
     if nonstd_spaces.intersection(('T1w', 'anat')):
@@ -216,10 +220,6 @@ def init_func_derivatives_wf(
             DerivativesDataSink(base_directory=output_dir, desc='pvc',suffix='cbf',space='T1w', compress=True),
             name='pvcnativet1', run_without_submitting=True,
             mem_gb=DEFAULT_MEMORY_MIN_GB)
-        attnativet1 = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='arterial_ttime', space='T1w', compress=True),
-            name='attnativet1', run_without_submitting=True,
-            mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         
         workflow.connect([
@@ -245,11 +245,7 @@ def init_func_derivatives_wf(
                                               ('pv_t1', 'in_file')]),
             (raw_sources, ds_bold_mask_t1, [('out', 'RawSources')]),
         ])
-
-        if len([metadata['InitialPostLabelDelay']]) > 1:
-            workflow.connect([ (inputnode,attnativet1,[('source_file', 'source_file'),
-                                              ('att_t1', 'in_file')]),
-                    ])    
+ 
 
         if freesurfer:
             ds_bold_aseg_t1 = pe.Node(DerivativesDataSink(
@@ -311,7 +307,7 @@ def init_func_derivatives_wf(
             name='select_std', run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
 
         ds_bold_std = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, desc='preproc',
+            DerivativesDataSink(base_directory=output_dir, desc='preproc', suffix='asl',
                                 keep_dtype=True, compress=True, SkullStripped=False,
                                 RepetitionTime=metadata.get('RepetitionTime'),
                                 TaskName=metadata.get('TaskName')),
@@ -469,6 +465,7 @@ def init_func_derivatives_wf(
             DerivativesDataSink(base_directory=output_dir, compress=False),
             iterfield=['in_file', 'suffix'], name='cifti_bolds',
             run_without_submitting=True, mem_gb=DEFAULT_MEMORY_MIN_GB)
+        
         cifti_key = pe.MapNode(DerivativesDataSink(
             base_directory=output_dir), iterfield=['in_file', 'suffix'],
             name='cifti_key', run_without_submitting=True,

@@ -7,5 +7,5 @@ Developers - API
 Workflows
 ---------
 
-.. automodule:: fmriprep.workflows.base
-.. automodule:: fmriprep.workflows.bold
+.. automodule:: aslprep.workflows.base
+.. automodule:: aslprep.workflows.bold

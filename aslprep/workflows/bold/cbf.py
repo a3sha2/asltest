@@ -5,7 +5,8 @@ from ...niworkflows.interfaces import NormalizeMotionParams
 from ...niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from ...niworkflows.interfaces.itk import MCFLIRT2ITK
 from ...niworkflows.interfaces.cbf_computation import (extractCBF,computeCBF
-       ,scorescrubCBF,BASILCBF,refinemask)
+       ,scorescrubCBF,BASILCBF,refinemask,qccbf)
+from ...niworkflows.interfaces.utility import KeySelect
 import nibabel as nb 
 import numpy as np
 import os,sys
@@ -58,8 +59,12 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
                tis=np.add(metadata["InitialPostLabelDelay"],metadata["LabelingDuration"]),
                pcasl=pcasl,out_basename=os.getcwd()),
               name='basilcbf',run_without_submitting=True,mem_gb=0.2) 
-
+    
+   
     refinemaskj=pe.Node(refinemask(),mem_gb=0.2,run_without_submitting=True,name="refinemask")
+
+    
+    
 
     
     #def _getTR(file):
@@ -114,13 +119,91 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
                      ('out_mean','out_mean')]),
         (scorescrub,outputnode,[('out_score','out_score'),('out_scoreindex','out_scoreindex'),
                     ('out_avgscore','out_avgscore'),('out_scrub','out_scrub')]),
+        
          ])
 
     return workflow
 
 
+def init_cbfqc_compt_wf(mem_gb,bold_file,metadata,omp_nthreads, name='cbfqc_compt_wf'):
+    workflow = Workflow(name=name)
+    workflow.__desc__ = """\
+        it is coming 
+        """
+    inputnode = pe.Node(niu.IdentityInterface(
+        fields=['meancbf','avgscore','scrub','basil','pv','bold_mask','t1w_tpms','t1w_mask','t1_bold_xform','bold_mask_std',
+        'confmat']),
+        name='inputnode')
+    outputnode = pe.Node(niu.IdentityInterface(fields=['qc_file']),
+        name='outputnode')
+    
+    def _pick_csf(files):
+        return files[0]
+    
+    def _pick_gm(files):
+        return files[1]
+
+    def _pick_wm(files):
+        return files[-1]
+    
+    csf_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
+                      name='csf_tfm', mem_gb=0.1)
+    wm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
+                     name='wm_tfm', mem_gb=0.1)
+    gm_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
+                     name='gm_tfm', mem_gb=0.1)
+
+    mask_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True),
+                     name='masktonative', mem_gb=0.1)
+
+    from templateflow.api import get as get_template  
+    brain_mask = str(get_template(
+            'MNI152NLin2009cAsym', resolution=2, desc='brain', suffix='mask'))
+
+    from nipype.interfaces.afni  import Resample
+    resample = pe.Node(Resample(in_file=brain_mask,outputtype='NIFTI_GZ'),name='resample', mem_gb=0.1)
+
+    #template_tfm = pe.Node(ApplyTransforms(interpolation='NearestNeighbor', float=True,input_image=brain_mask),
+                     #name='template_tfm', mem_gb=0.1)
+    qccompute=pe.Node(qccbf(in_file=bold_file),name='qccompute',run_without_submitting=True,mem_gb=0.2)
+    
+    workflow.connect([(inputnode, csf_tfm, [('bold_mask', 'reference_image'),
+                              ('t1_bold_xform', 'transforms')]),
+                      (inputnode, csf_tfm, [(('t1w_tpms', _pick_csf), 'input_image')]),
+                      (inputnode, wm_tfm, [('bold_mask', 'reference_image'),
+                              ('t1_bold_xform', 'transforms')]),
+                      (inputnode, wm_tfm, [(('t1w_tpms', _pick_wm), 'input_image')]),
+                      (inputnode, gm_tfm, [('bold_mask', 'reference_image'),
+                              ('t1_bold_xform', 'transforms')]),
+                      (inputnode, gm_tfm, [(('t1w_tpms', _pick_gm), 'input_image')]),
+                      (inputnode, mask_tfm, [('bold_mask', 'reference_image'),
+                              ('t1_bold_xform', 'transforms'),('t1w_mask', 'input_image')]),
+                      (mask_tfm,qccompute,[('output_image','in_t1mask')]),
+                      (inputnode,qccompute,[('bold_mask','in_boldmask'),
+                            ('confmat','in_confmat')]),
+                      (inputnode,qccompute,[(('bold_mask_std',_pick_csf),'in_boldmaskstd')]),
+                     (inputnode,resample,[(('bold_mask_std',_pick_csf),'master')]),
+                     (resample,qccompute,[('out_file','in_templatemask')]),
+                     (gm_tfm,qccompute,[('output_image','in_greyM')]),
+                     (wm_tfm,qccompute,[('output_image','in_whiteM')]),
+                     (csf_tfm,qccompute,[('output_image','in_csf')]),    
+                     (inputnode,qccompute,[('scrub','in_scrub'),
+                                ('meancbf','in_meancbf'),('avgscore','in_avgscore'),
+                                ('basil','in_basil'),('pv','in_pvc')]),
+                     (qccompute,outputnode,[('qc_file','qc_file')]), 
+                    ])
+    return workflow
+
+
+
         
-                  
+ 
+        
+
+
+       
+        
+              
         
 
 

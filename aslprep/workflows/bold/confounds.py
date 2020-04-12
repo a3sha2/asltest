@@ -140,40 +140,14 @@ def init_bold_confs_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 Several confounding time-series were calculated based on the
-*preprocessed BOLD*: framewise displacement (FD), DVARS and
-three region-wise global signals.
+*preprocessed BOLD*: framewise displacement (FD) and DVARS. 
+
 FD and DVARS are calculated for each functional run, both using their
 implementations in *Nipype* [following the definitions by @power_fd_dvars].
-The three global signals are extracted within the CSF, the WM, and
-the whole-brain masks.
-Additionally, a set of physiological regressors were extracted to
-allow for component-based noise correction [*CompCor*, @compcor].
-Principal components are estimated after high-pass filtering the
-*preprocessed BOLD* time-series (using a discrete cosine filter with
-128s cut-off) for the two *CompCor* variants: temporal (tCompCor)
-and anatomical (aCompCor).
-tCompCor components are then calculated from the top 5% variable
-voxels within a mask covering the subcortical regions.
-This subcortical mask is obtained by heavily eroding the brain mask,
-which ensures it does not include cortical GM regions.
-For aCompCor, components are calculated within the intersection of
-the aforementioned mask and the union of CSF and WM masks calculated
-in T1w space, after their projection to the native space of each
-functional run (using the inverse BOLD-to-T1w transformation). Components
-are also calculated separately within the WM and CSF masks.
-For each CompCor decomposition, the *k* components with the largest singular
-values are retained, such that the retained components' time series are
-sufficient to explain 50 percent of variance across the nuisance mask (CSF,
-WM, combined, or temporal). The remaining components are dropped from
-consideration.
 The head-motion estimates calculated in the correction step were also
 placed within the corresponding confounds file.
-The confound time series derived from head motion estimates and global
-signals were expanded with the inclusion of temporal derivatives and
-quadratic terms for each [@confounds_satterthwaite_2013].
-Frames that exceeded a threshold of {fd} mm FD or {dv} standardised DVARS
-were annotated as motion outliers.
-""".format(fd=0.1, dv=2)
+
+"""
     inputnode = pe.Node(niu.IdentityInterface(
         fields=['bold', 'bold_mask', 'movpar_file', 'skip_vols',
                 't1w_mask', 't1w_tpms', 't1_bold_xform']),

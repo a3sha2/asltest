@@ -41,9 +41,10 @@ def get_parser():
     from .version import check_latest, is_flagged
     from ..niworkflows.utils.spaces import Reference, SpatialReferences, OutputReferencesAction
 
-    verstr = 'ASLPrep v{}'.format(__version__)
-    currentv = Version(__version__)
-    is_release = not any((currentv.is_devrelease, currentv.is_prerelease, currentv.is_postrelease))
+    #verstr = 'ASLPrep v{}'.format(__version__)
+    #currentv = Version(__version__)
+    #is_release = not any((currentv.is_devrelease, currentv.is_prerelease, currentv.is_postrelease))
+    currentv='0.0.1'
 
     parser = ArgumentParser(description='ASLPrep: ASL PREProcessing workflows',
                             formatter_class=ArgumentDefaultsHelpFormatter)
@@ -62,11 +63,11 @@ def get_parser():
                              'aslprep (see BIDS-Apps specification).')
 
     # optional arguments
-    parser.add_argument('--version', action='version', version=verstr)
+    parser.add_argument('--version', action='version', version="0.0.1")
 
     g_bids = parser.add_argument_group('Options for filtering BIDS queries')
     g_bids.add_argument('--skip_bids_validation', '--skip-bids-validation', action='store_true',
-                        default=False,
+                        default=True,
                         help='assume the input dataset is BIDS compliant and skip the validation')
     g_bids.add_argument('--participant_label', '--participant-label', action='store', nargs='+',
                         help='a space delimited list of participant identifiers or a single '
@@ -130,18 +131,7 @@ def get_parser():
              'using the middle echo.')
     g_conf.add_argument(
         '--output-spaces', nargs='*', action=OutputReferencesAction, default=SpatialReferences(),
-        help="""\
-Standard and non-standard spaces to resample anatomical and functional images to. \
-Standard spaces may be specified by the form \
-``<SPACE>[:cohort-<label>][:res-<resolution>][...]``, where ``<SPACE>`` is \
-a keyword designating a spatial reference, and may be followed by optional, \
-colon-separated parameters. \
-Non-standard spaces imply specific orientations and sampling grids. \
-Important to note, the ``res-*`` modifier does not define the resolution used for \
-the spatial normalization. To generate no BOLD outputs, use this option without specifying \
-any spatial references. For further details, please check out \
-https://aslprep.readthedocs.io/en/%s/spaces.html""" % (currentv.base_version
-                                                        if is_release else 'latest'))
+        help="Standard and non-standard spaces to resample anatomical and functional images to" )
 
     g_conf.add_argument('--bold2t1w-dof', action='store', default=6, choices=[6, 9, 12], type=int,
                         help='Degrees of freedom when registering BOLD to T1w images. '

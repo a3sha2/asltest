@@ -67,14 +67,14 @@ def init_bold_t2s_wf(echo_times, mem_gb, omp_nthreads,
     """
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-A T2* map was estimated from the preprocessed BOLD by fitting to a monoexponential signal
+A T2* map was estimated from the preprocessed ASL by fitting to a monoexponential signal
 decay model with log-linear regression.
 For each voxel, the maximal number of echoes with reliable signal in that voxel were
 used to fit the model.
-The calculated T2* map was then used to optimally combine preprocessed BOLD across
+The calculated T2* map was then used to optimally combine preprocessed ASL across
 echoes following the method described in [@posse_t2s].
-The optimally combined time series was carried forward as the *preprocessed BOLD*{}.
-""".format('' if not t2s_coreg else ', and the T2* map was also retained as the BOLD reference')
+The optimally combined time series was carried forward as the *preprocessed ASL*{}.
+""".format('' if not t2s_coreg else ', and the T2* map was also retained as the ASL reference')
 
     inputnode = pe.Node(niu.IdentityInterface(fields=['bold_file']), name='inputnode')
 

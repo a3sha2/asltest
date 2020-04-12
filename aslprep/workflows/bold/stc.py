@@ -57,7 +57,7 @@ def init_bold_stc_wf(metadata, name='bold_stc_wf'):
     """
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-BOLD runs were slice-time corrected using `3dTshift` from
+ASL runs were slice-time corrected using `3dTshift` from
 AFNI {afni_ver} [@afni, RRID:SCR_005927].
 """.format(afni_ver=''.join(['%02d' % v for v in afni.Info().version() or []]))
     inputnode = pe.Node(niu.IdentityInterface(fields=['bold_file', 'skip_vols']), name='inputnode')

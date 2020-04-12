@@ -66,8 +66,8 @@ ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
 
 # Installing Neurodebian packages (FSL, AFNI, git)
 RUN curl -sSL "http://neuro.debian.net/lists/$( lsb_release -c | cut -f2 ).us-ca.full" >> /etc/apt/sources.list.d/neurodebian.sources.list && \
-    apt-key add /usr/local/etc/neurodebian.gpg && \
-    (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
+   apt-key add /usr/local/etc/neurodebian.gpg && \
+   (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -108,12 +108,12 @@ RUN npm install -g svgo
 RUN npm install -g bids-validator@1.4.0
 
 # Installing and setting up ICA_AROMA
-RUN mkdir -p /opt/ICA-AROMA && \
-  curl -sSL "https://github.com/oesteban/ICA-AROMA/archive/v0.4.5.tar.gz" \
-  | tar -xzC /opt/ICA-AROMA --strip-components 1 && \
-  chmod +x /opt/ICA-AROMA/ICA_AROMA.py
-ENV PATH="/opt/ICA-AROMA:$PATH" \
-    AROMA_VERSION="0.4.5"
+#RUN mkdir -p /opt/ICA-AROMA && \
+  #curl -sSL "https://github.com/oesteban/ICA-AROMA/archive/v0.4.5.tar.gz" \
+  #tar -xzC /opt/ICA-AROMA --strip-components 1 && \
+  #chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+#ENV PATH="/opt/ICA-AROMA:$PATH" \
+    #AROMA_VERSION="0.4.5"
 
 # Installing and setting up miniconda
 RUN curl -sSLO https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh && \
@@ -153,17 +153,17 @@ ENV MKL_NUM_THREADS=1 \
     OMP_NUM_THREADS=1
 
 # Create a shared $HOME directory
-RUN useradd -m -s /bin/bash -G users fmriprep
-WORKDIR /home/fmriprep
-ENV HOME="/home/fmriprep"
+RUN useradd -m -s /bin/bash -G users aslprep
+WORKDIR /home/aslprep
+ENV HOME="/home/aslprep"
 
 # Precaching fonts, set 'Agg' as default backend for matplotlib
 RUN python -c "from matplotlib import font_manager" && \
     sed -i 's/\(backend *: \).*$/\1Agg/g' $( python -c "import matplotlib; print(matplotlib.matplotlib_fname())" )
 
 # Precaching atlases
-COPY setup.cfg fmriprep-setup.cfg
-RUN pip install --no-cache-dir "$( grep templateflow fmriprep-setup.cfg | xargs )" && \
+COPY setup.cfg aslprep-setup.cfg
+RUN pip install --no-cache-dir "$( grep templateflow aslprep-setup.cfg | xargs )" && \
     python -c "from templateflow import api as tfapi; \
                tfapi.get('MNI152NLin6Asym', atlas=None, resolution=[1, 2], \
                          desc=None, extension=['.nii', '.nii.gz']); \
@@ -171,40 +171,40 @@ RUN pip install --no-cache-dir "$( grep templateflow fmriprep-setup.cfg | xargs 
                          desc='brain', extension=['.nii', '.nii.gz']); \
                tfapi.get('MNI152NLin2009cAsym', atlas=None, extension=['.nii', '.nii.gz']); \
                tfapi.get('OASIS30ANTs', extension=['.nii', '.nii.gz']);" && \
-    rm fmriprep-setup.cfg && \
+    rm aslprep-setup.cfg && \
     find $HOME/.cache/templateflow -type d -exec chmod go=u {} + && \
     find $HOME/.cache/templateflow -type f -exec chmod go=u {} +
 
-# Installing FMRIPREP
-COPY . /src/fmriprep
+# Installing ASLPREP
+COPY . /src/aslprep
 ARG VERSION
 # Force static versioning within container
-RUN echo "${VERSION}" > /src/fmriprep/fmriprep/VERSION && \
-    echo "include fmriprep/VERSION" >> /src/fmriprep/MANIFEST.in && \
-    pip install --no-cache-dir "/src/fmriprep[all]"
+RUN echo "${VERSION}" > /src/aslprep/aslprep/VERSION && \
+    echo "include aslprep/VERSION" >> /src/aslprep/MANIFEST.in && \
+    pip install --no-cache-dir "/src/aslprep[all]"
 
 RUN install -m 0755 \
-    /src/fmriprep/scripts/generate_reference_mask.py \
+    /src/aslprep/scripts/generate_reference_mask.py \
     /usr/local/bin/generate_reference_mask
 
 RUN find $HOME -type d -exec chmod go=u {} + && \
     find $HOME -type f -exec chmod go=u {} + && \
     rm -rf $HOME/.npm $HOME/.conda $HOME/.empty
 
-ENV IS_DOCKER_8395080871=1
+#ENV IS_DOCKER_8395080871=1
 
 RUN ldconfig
 WORKDIR /tmp/
-ENTRYPOINT ["/usr/local/miniconda/bin/fmriprep"]
+ENTRYPOINT ["/usr/local/miniconda/bin/aslprep"]
 
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.name="fMRIPrep" \
-      org.label-schema.description="fMRIPrep - robust fMRI preprocessing tool" \
-      org.label-schema.url="http://fmriprep.org" \
+      org.label-schema.name="ASLPrep" \
+      org.label-schema.description="ASLPrep - robust ASL preprocessing tool" \
+      org.label-schema.url="http://aslprep.org" \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/poldracklab/fmriprep" \
+      org.label-schema.vcs-url="https://github.com/PennLINC/aslprep" \
       org.label-schema.version=$VERSION \
       org.label-schema.schema-version="1.0"

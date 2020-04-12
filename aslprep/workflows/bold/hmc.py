@@ -60,7 +60,7 @@ def init_bold_hmc_wf(mem_gb, omp_nthreads, name='bold_hmc_wf'):
     """
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-Head-motion parameters with respect to the BOLD reference
+Head-motion parameters with respect to the ASL reference
 (transformation matrices, and six corresponding rotation and translation
 parameters) are estimated before any spatiotemporal filtering using
 `mcflirt` [FSL {fsl_ver}, @mcflirt].
