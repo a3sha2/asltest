@@ -630,14 +630,14 @@ class qccbf(SimpleInterface):
                  csf=self.inputs.in_csf,img=self.inputs.in_scrub,thresh=0.7)
 
         if self.inputs.in_boldmaskstd and self.inputs.in_templatemask:
-            dict1 = {'fd':[fd],'rel_rms':[rms],'regDC':[regDC],'regJC':[regJC],'regCC':[regCC],'regCov':[regCov],
-            'normDC':[normDC],'normJC':[normJC],'normCC':[normCC],'normCov':[normCov],
-            'cbfqei':[meancbf_qei],'scoreqei':[scorecbf_qei],'scrubqei':[scrub_qei],
-            'basilqei':[basilcbf_qei],'pvcqei':[pvcbf_qei] } 
+            dict1 = {'fd':[fd],'rel_rms':[rms],'coregDC':[regDC],'coregJC':[regJC],'coregCC':[regCC],'coregCOV':[regCov],
+            'normDC':[normDC],'normJC':[normJC],'normCC':[normCC],'normCOV':[normCov],
+            'cbfQei':[meancbf_qei],'scoreQei':[scorecbf_qei],'scrubQei':[scrub_qei],
+            'basilQei':[basilcbf_qei],'pvcQei':[pvcbf_qei] } 
         else:
-            dict1 = {'fd':[fd],'rel_rms':[rms],'regDC':[regDC],'regJC':[regJC],'regCC':[regCC],'regCov':[regCov],
-            'cbfqei':[meancbf_qei],'scoreqei':[scorecbf_qei],'scrubqei':[scrub_qei],
-            'basilqei':[basilcbf_qei],'pvcqei':[pvcbf_qei] }   
+            dict1 = {'fd':[fd],'rel_rms':[rms],'regDC':[regDC],'regJC':[regJC],'coregCC':[regCC],'coregCOV':[regCov],
+            'cbfQei':[meancbf_qei],'scoreQei':[scorecbf_qei],'scrubQei':[scrub_qei],
+            'basilQei':[basilcbf_qei],'pvcQei':[pvcbf_qei] }   
         
         _,file1=os.path.split(self.inputs.in_file)
         bb=file1.split('_')
@@ -777,8 +777,15 @@ def cbf_qei(gm,wm,csf,img,thresh=0.7):
     
     x1 = [0.054,0.9272]; x2 = [2.8478,0.5196]; x4 = [3.0126, 2.4419]                                     
     scbf=smooth_image(nb.load(img),fwhm=5).get_fdata()# smooth the image 
+    if len(scbf.shape) > 3:
+        scbf=scbf[:,:,:,0]
+
     #load prob maps
     gmm=nb.load(gm).get_fdata(); wmm=nb.load(wm).get_fdata(); ccf=nb.load(csf).get_fdata()
+    if len(gmm.shape) > 3:
+        gmm=gmm[:,:,:,0]
+        wmm=gmm[:,:,:,0]
+        ccf=ccf[:,:,:,0]
     pbcf=2.5*gmm+wmm  # gmm is 2.5 times wm
     msk=np.array((scbf!= 0)&(scbf != np.nan )&(pbcf != np.nan )).astype(int)
 

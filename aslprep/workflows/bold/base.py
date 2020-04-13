@@ -675,6 +675,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                       ('outputnode.bold_mask','inputnode.bold_mask')]),
          (inputnode,compt_cbf_wf,[('t1w_tpms','inputnode.t1w_tpms')]),
          (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_t1_to_bold','inputnode.t1_bold_xform')]),
+         (bold_reg_wf,compt_cbf_wf,[('outputnode.itk_bold_to_t1','inputnode.itk_bold_to_t1')]),
          (inputnode,compt_cbf_wf,[('t1w_mask','inputnode.t1w_mask')]),
          #(compt_cbf_wf,func_derivatives_wf,[('outputnode.qc_file','inputnode.qc_file')]),
 

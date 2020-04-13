@@ -22,7 +22,7 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
 
 
     inputnode = pe.Node(niu.IdentityInterface(
-        fields=['bold', 'bold_mask','t1w_tpms','t1w_mask','t1_bold_xform']),
+        fields=['bold', 'bold_mask','t1w_tpms','t1w_mask','t1_bold_xform','itk_bold_to_t1']),
         name='inputnode')
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['out_cbf', 'out_mean','out_score','out_avgscore','out_scrub',
@@ -62,10 +62,6 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
     
    
     refinemaskj=pe.Node(refinemask(),mem_gb=0.2,run_without_submitting=True,name="refinemask")
-
-    
-    
-
     
     #def _getTR(file):
         #import nibabel as nb
@@ -120,8 +116,7 @@ def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_c
         (scorescrub,outputnode,[('out_score','out_score'),('out_scoreindex','out_scoreindex'),
                     ('out_avgscore','out_avgscore'),('out_scrub','out_scrub')]),
         
-         ])
-
+        ])
     return workflow
 
 

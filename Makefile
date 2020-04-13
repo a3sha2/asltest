@@ -1,7 +1,7 @@
 .PHONY: help docker-build
 .DEFAULT: help
 
-tag="fmriprep"
+tag="aslprep"
 
 help:
 	@echo "Premade recipes"

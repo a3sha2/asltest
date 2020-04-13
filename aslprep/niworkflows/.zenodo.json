@@ -87,7 +87,7 @@
   "license": "BSD-3-Clause",
   "related_identifiers": [
     {
-      "identifier": "http://fmriprep.org",
+      "identifier": "http://aslprep.org",
       "relation": "isPartOf",
       "scheme": "url"
     },
