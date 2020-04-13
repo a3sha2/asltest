@@ -63,7 +63,7 @@ Principles
    analysis.
 
 
-Limitations and reasons not to use *fMRIPrep*
+Limitations and reasons not to use *ASLPrep*
 ---------------------------------------------
 
 1. Very narrow :abbr:`FoV (field-of-view)` images oftentimes do not contain
