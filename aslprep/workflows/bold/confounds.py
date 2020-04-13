@@ -140,9 +140,8 @@ def init_bold_confs_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
 Several confounding time-series were calculated based on the
-*preprocessed BOLD*: framewise displacement (FD) and DVARS. 
-
-FD and DVARS are calculated for each functional run, both using their
+*preprocessed ASL*: framewise displacement (FD) and DVARS. 
+FD and DVARS are calculated for each ASL run, both using their
 implementations in *Nipype* [following the definitions by @power_fd_dvars].
 The head-motion estimates calculated in the correction step were also
 placed within the corresponding confounds file.

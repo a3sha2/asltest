@@ -3,7 +3,7 @@
 .. _citation:
 
 =================
-Citing *fMRIPrep*
+Citing *ASLPrep*
 =================
 
 Select which options you have run *fMRIPrep* with to generate custom language
@@ -154,10 +154,10 @@ we recommend to include in your paper.
    </p>
 
    <p style="font-style: italic;">
-     Many internal operations of FMRIPREP use Nilearn [22, RRID:SCR_001362], principally within the BOLD-processing
+     Many internal operations of ASLPrep use Nilearn [22, RRID:SCR_001362], principally within the BOLD-processing
      workflow.
      For more details of the pipeline see
-     <a id="workflow_url" href="http://fmriprep.readthedocs.io/en/latest/workflows.html">http://fmriprep.readthedocs.io/en/latest/workflows.html</a>.
+     <a id="workflow_url" href="http://aslprep.readthedocs.io/en/latest/workflows.html">http://fmriprep.readthedocs.io/en/latest/workflows.html</a>.
    </p>
    <p>
      1. Esteban O, Markiewicz CJ, Blair RW, Moodie CA, Isik AI, Erramuzpe A, Kent JD, Goncalves M,

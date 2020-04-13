@@ -508,21 +508,21 @@ def init_single_subject_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """
 Results included in this manuscript come from preprocessing
-performed using *fMRIPrep* {fmriprep_ver}
-(@fmriprep1; @fmriprep2; RRID:SCR_016216),
+performed using *ASLPrep* {fmriprep_ver}
+(RRID:SCR_016216),
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
 """.format(fmriprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
-Many internal operations of *fMRIPrep* use
+Many internal operations of *ASLPrep* use
 *Nilearn* {nilearn_ver} [@nilearn, RRID:SCR_001362],
 mostly within the functional processing workflow.
 For more details of the pipeline, see [the section corresponding
-to workflows in *fMRIPrep*'s documentation]\
-(https://fmriprep.readthedocs.io/en/latest/workflows.html \
-"FMRIPrep's documentation").
+to workflows in *ASLPrep*'s documentation]\
+(https://aslprep.readthedocs.io/en/latest/workflows.html \
+"ASLPrep's documentation").
 
 
 ### Copyright Waiver
