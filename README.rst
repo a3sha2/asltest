@@ -1,7 +1,7 @@
 *ASLPrep*: A Robust Preprocessing Pipeline for ASL Data
 =========================================================
 
-This pipeline is developed by the `Sattarwaite lab at University of Pennysilvania
+This pipeline is developed by the `Sattarwaite lab at the University of Pennysilvania
 <https://www.satterthwaitelab.com/>`_ for use at the `The Lifespan Informatics and Neuroimaging Center 
 at the University of Pennylvannia <https://www.satterthwaitelab.com/>`_, as well as for
 open-source software distribution.
