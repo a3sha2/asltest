@@ -18,7 +18,7 @@ from pandas.api.types import is_numeric_dtype
 
 from .variables import (SparseRunVariable, SimpleVariable, DenseRunVariable,
                         merge_variables, BIDSVariable)
-from bids.utils import listify, matches_entities
+from ...pybids.utils import listify, matches_entities
 
 
 class BIDSVariableCollection(object):

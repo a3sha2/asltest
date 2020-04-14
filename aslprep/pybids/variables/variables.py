@@ -6,10 +6,10 @@ import math
 import warnings
 from copy import deepcopy
 from abc import abstractmethod, ABCMeta
-from bids.utils import listify
+from ...pybids.utils import listify
 from itertools import chain
 from functools import reduce
-from bids.utils import matches_entities
+from ...pybids.utils import matches_entities
 
 class BIDSVariable(metaclass=ABCMeta):
     """Base representation of a column in a BIDS project. """

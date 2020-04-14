@@ -19,7 +19,7 @@ from nipype.utils.filemanip import copyfile
 
 # Add a new figures spec
 try:
-    add_config_paths(figures=pkgrf('niworkflows', 'reports/figures.json'))
+    add_config_paths(figures=pkgrf('aslprep', 'niworkflows/reports/figures.json'))
 except ValueError as e:
     if "Configuration 'figures' already exists" != str(e):
         raise

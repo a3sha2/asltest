@@ -18,7 +18,7 @@ from ..core import Report
 @pytest.fixture()
 def bids_sessions(tmpdir_factory):
     f, _ = plt.subplots()
-    svg_dir = tmpdir_factory.mktemp('work') / 'fmriprep'
+    svg_dir = tmpdir_factory.mktemp('work') / 'aslprep'
     svg_dir.ensure_dir()
 
     pattern = (
@@ -26,7 +26,7 @@ def bids_sessions(tmpdir_factory):
         "sub-{subject}[_ses-{session}][_task-{task}][_acq-{acquisition}]"
         "[_ce-{contrast}][_dir-{direction}][_rec-{reconstruction}]"
         "[_mod-{modality}][_run-{run}][_echo-{echo}][_space-{space}]"
-        "[_desc-{desc}]_{suffix<dseg|T1w|bold>}.{extension<svg>}"
+        "[_desc-{desc}]_{suffix<dseg|T1w|bold|asl>}.{extension<svg>}"
     )
     subjects = ['01']
     tasks = ['t1', 't2', 't3']
@@ -47,8 +47,8 @@ def bids_sessions(tmpdir_factory):
             'run': run,
             'desc': desc,
             'extension': 'svg',
-            'suffix': 'bold',
-            'datatype': 'func'
+            'suffix': 'asl',
+            'datatype': 'asl'
         }
         bids_path = build_path(entities, pattern)
         file_path = svg_dir / bids_path
@@ -89,14 +89,14 @@ def test_report1():
     out_dir = tempfile.mkdtemp()
 
     return Report(Path(test_data_path), Path(out_dir), 'fakeiuud',
-                  subject_id='01', packagename='fmriprep')
+                  subject_id='01', packagename='aslprep')
 
 
 @pytest.fixture()
 def test_report2(bids_sessions):
     out_dir = tempfile.mkdtemp()
     return Report(Path(bids_sessions), Path(out_dir), 'fakeiuud',
-                  subject_id='01', packagename='fmriprep')
+                  subject_id='01', packagename='aslprep')
 
 
 @pytest.mark.parametrize(
@@ -189,8 +189,8 @@ def test_generated_reportlets(bids_sessions, ordering):
     # make independent report
     out_dir = tempfile.mkdtemp()
     report = Report(Path(bids_sessions), Path(out_dir), 'fakeiuud',
-                    subject_id='01', packagename='fmriprep')
-    config = Path(pkgrf('niworkflows', 'reports/fmriprep.yml'))
+                    subject_id='01', packagename='aslprep')
+    config = Path(pkgrf('niworkflows', 'reports/aslprep.yml'))
     settings = load(config.read_text())
     # change settings to only include some missing ordering
     settings['sections'][3]['ordering'] = ordering

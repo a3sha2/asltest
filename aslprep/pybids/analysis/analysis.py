@@ -1,8 +1,8 @@
 import json
 from io import open
-from bids.layout import BIDSLayout
-from bids.utils import matches_entities, convert_JSON
-from bids.variables import BIDSVariableCollection, merge_collections
+from ...pybids.layout import BIDSLayout
+from ...pybids.utils import matches_entities, convert_JSON
+from ...pybids.variables import BIDSVariableCollection, merge_collections
 from . import transformations as transform
 from collections import namedtuple, OrderedDict
 import numpy as np

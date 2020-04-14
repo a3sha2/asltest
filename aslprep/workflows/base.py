@@ -71,7 +71,7 @@ def init_aslprep_wf(
     bids_filters,
 ):
     """
-    Build *fMRIPrep*'s pipeline.
+    Build *ASLPrep*'s pipeline.
 
     This workflow organizes the execution of FMRIPREP, with a sub-workflow for
     each subject.
@@ -485,7 +485,7 @@ def init_single_subject_wf(
         FreeSurfer's ``$SUBJECTS_DIR``.
 
     """
-    if name in ('single_subject_wf', 'single_subject_fmripreptest_wf'):
+    if name in ('single_subject_wf', 'single_subject_aslpreptest_wf'):
         # for documentation purposes
         subject_data = {
             't1w': ['/completely/made/up/path/sub-01_T1w.nii.gz'],
