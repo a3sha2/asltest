@@ -235,7 +235,7 @@ class Report(object):
             self.out_filename = 'sub-{}.html'.format(self.subject_id)
 
         if config is None:
-            config = pkgrf('niworkflows', 'reports/fmriprep.yml')
+            config = pkgrf('aslprep', 'niworkflows/reports/fmriprep.yml')
         self._load_config(Path(config))
 
     def _load_config(self, config):
@@ -251,7 +251,7 @@ class Report(object):
             self.root = self.root / 'sub-{}'.format(self.subject_id)
 
         # Default template from niworkflows
-        template_path = Path(pkgrf('niworkflows', 'reports/report.tpl'))
+        template_path = Path(pkgrf('aslprep', 'niworkflows/reports/report.tpl'))
         if 'template_path' in settings:
             template_path = config.parent / settings['template_path']
         self.template_path = template_path.absolute()
