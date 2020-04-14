@@ -45,8 +45,8 @@ FUNCTIONAL_TEMPLATE = """\t\t<h3 class="elem-title">Summary</h3>
 """
 
 ABOUT_TEMPLATE = """\t<ul>
-\t\t<li>fMRIPrep version: {version}</li>
-\t\t<li>fMRIPrep command: <code>{command}</code></li>
+\t\t<li>ASLPrep version: {version}</li>
+\t\t<li>ASLPrep command: <code>{command}</code></li>
 \t\t<li>Date preprocessed: {date}</li>
 \t</ul>
 </div>
@@ -110,7 +110,7 @@ class SubjectSummary(SummaryInterface):
             if recon.cmdline.startswith('echo'):
                 freesurfer_status = 'Pre-existing directory'
             else:
-                freesurfer_status = 'Run by fMRIPrep'
+                freesurfer_status = 'Run by ASLPrep'
 
         t2w_seg = ''
         if self.inputs.t2w:
@@ -120,17 +120,18 @@ class SubjectSummary(SummaryInterface):
         bold_series = self.inputs.bold if isdefined(self.inputs.bold) else []
         bold_series = [s[0] if isinstance(s, list) else s for s in bold_series]
 
-        counts = Counter(BIDS_NAME.search(series).groupdict()['task_id'][5:]
-                         for series in bold_series)
+
+        #counts = Counter(BIDS_NAME.search(series).groupdict()['task_id'][5:]
+                         #for series in bold_series)
 
         tasks = ''
-        if counts:
-            header = '\t\t<ul class="elem-desc">'
-            footer = '\t\t</ul>'
-            lines = ['\t\t\t<li>Task: {task_id} ({n_runs:d} run{s})</li>'.format(
-                     task_id=task_id, n_runs=n_runs, s='' if n_runs == 1 else 's')
-                     for task_id, n_runs in sorted(counts.items())]
-            tasks = '\n'.join([header] + lines + [footer])
+        #if counts:
+            #header = '\t\t<ul class="elem-desc">'
+            #ooter = '\t\t</ul>'
+            #lines = ['\t\t\t<li>Task: {task_id} ({n_runs:d} run{s})</li>'.format(
+                     #task_id=task_id, n_runs=n_runs, s='' if n_runs == 1 else 's')
+                     #for task_id, n_runs in sorted(counts.items())]
+            #tasks = '\n'.join([header] + lines + [footer])
 
         return SUBJECT_TEMPLATE.format(
             subject_id=self.inputs.subject_id,
@@ -212,8 +213,8 @@ class FunctionalSummary(SummaryInterface):
 
 
 class AboutSummaryInputSpec(BaseInterfaceInputSpec):
-    version = Str(desc='FMRIPREP version')
-    command = Str(desc='FMRIPREP command')
+    version = Str(desc='ASLPREP version')
+    command = Str(desc='ASLPREP command')
     # Date not included - update timestamp only if version or command changes
 
 

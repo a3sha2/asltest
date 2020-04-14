@@ -179,6 +179,14 @@ placed within the corresponding confounds file.
         name="add_motion_headers", mem_gb=0.01, run_without_submitting=True)
     concat = pe.Node(GatherConfounds(), name="concat", mem_gb=0.01, run_without_submitting=True)
 
+    rois_plot = pe.Node(ROIsPlot(colors=['b', 'magenta'], generate_report=True),
+                        name='rois_plot', mem_gb=mem_gb)
+
+    ds_report_bold_rois = pe.Node(
+        DerivativesDataSink(desc='rois', keep_dtype=True),
+        name='ds_report_bold_rois', run_without_submitting=True,
+        mem_gb=DEFAULT_MEMORY_MIN_GB)
+
 
 
     # Expand model to include derivatives and quadratics

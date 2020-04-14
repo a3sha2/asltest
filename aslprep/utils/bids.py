@@ -19,25 +19,24 @@ def write_derivative_description(bids_dir, deriv_dir):
     bids_dir = Path(bids_dir)
     deriv_dir = Path(deriv_dir)
     desc = {
-        'Name': 'fMRIPrep - fMRI PREProcessing workflow',
+        'Name': 'ASLPrep - ASL PREProcessing workflow',
         'BIDSVersion': '1.1.1',
         'PipelineDescription': {
-            'Name': 'fMRIPrep',
+            'Name': 'ASLPrep',
             'Version': __version__,
             'CodeURL': DOWNLOAD_URL,
         },
         'CodeURL': __url__,
         'HowToAcknowledge':
-            'Please cite our paper (https://doi.org/10.1038/s41592-018-0235-4), '
             'and include the generated citation boilerplate within the Methods '
             'section of the text.',
     }
 
     # Keys that can only be set by environment
-    if 'FMRIPREP_DOCKER_TAG' in os.environ:
-        desc['DockerHubContainerTag'] = os.environ['FMRIPREP_DOCKER_TAG']
-    if 'FMRIPREP_SINGULARITY_URL' in os.environ:
-        singularity_url = os.environ['FMRIPREP_SINGULARITY_URL']
+    if 'ASLPREP_DOCKER_TAG' in os.environ:
+        desc['DockerHubContainerTag'] = os.environ['ASLPREP_DOCKER_TAG']
+    if 'ASLPREP_SINGULARITY_URL' in os.environ:
+        singularity_url = os.environ['ASLPREP_SINGULARITY_URL']
         desc['SingularityContainerURL'] = singularity_url
 
         singularity_md5 = _get_shub_version(singularity_url)
