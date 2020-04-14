@@ -1386,7 +1386,7 @@ class BIDSLayout(object):
         Raises an exception if more than one unique TR is found.
         """
         # Constrain search to functional images
-        filters.update(suffix='bold', datatype='func')
+        filters.update(suffix='asl', datatype='asl')
         scope = 'all' if derivatives else 'raw'
         images = self.get(extension=['nii', 'nii.gz'], scope=scope,
                           **filters)
