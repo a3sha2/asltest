@@ -67,7 +67,7 @@ sections:
       potential spin-history and other artifacts, whereas final images are resampled
       using Lanczos interpolation.
     static: false
-    subtitle: Alignment of asltional and anatomical MRI data (volume based)
+    subtitle: Alignment of functional and anatomical MRI data (volume based)
   - bids: {datatype: asl, desc: flirtbbr, suffix: asl}
     caption: FSL <code>flirt</code> was used to generate transformations from EPI-space
       to T1w-space - The white matter mask calculated with FSL <code>fast</code> (brain
@@ -75,14 +75,14 @@ sections:
       is used in the reportlets in order to highlight potential spin-history and other
       artifacts, whereas final images are resampled using Lanczos interpolation.
     static: false
-    subtitle: Alignment of asltional and anatomical MRI data (surface driven)
+    subtitle: Alignment of functional and anatomical MRI data (surface driven)
   - bids: {datatype: asl, desc: bbregister, suffix: asl}
     caption: <code>bbregister</code> was used to generate transformations from EPI-space
       to T1w-space. Note that Nearest Neighbor interpolation is used in the reportlets
       in order to highlight potential spin-history and other artifacts, whereas final
       images are resampled using Lanczos interpolation.
     static: false
-    subtitle: Alignment of asltional and anatomical MRI data (surface driven)
+    subtitle: Alignment of functional and anatomical MRI data (surface driven)
   - bids: {datatype: asl, desc: carpetplot, suffix: asl}
     caption: Summary statistics are plotted, which may reveal trends or artifacts
       in the asl data. Global signals calculated within the whole-brain (GS), within

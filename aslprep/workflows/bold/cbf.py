@@ -16,15 +16,15 @@ from ...config import DEFAULT_MEMORY_MIN_GB
 def init_cbf_compt_wf(mem_gb,metadata,aslcontext,pcasl,omp_nthreads, name='cbf_compt_wf'):
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-The CBF was quantified from  *preproccessed* ASL,@detre_perfusion, data using a relatively basic model 
-@alsop_recommended. CBF are susceptible to artifacts due to low signal to noise ratio  and  sensitivity 
+The CBF was quantified from  *preproccessed* ASL data using a relatively basic model 
+(@detre_perfusion,@alsop_recommended). CBF are susceptible to artifacts due to low signal to noise ratio  and  sensitivity 
 to  motion, Structural Correlation based Outlier Rejection (SCORE) algothim was applied to the CBF to 
-discard few extreme outliers @score_dolui. Furthermore,Structural Correlation with RobUst Bayesian (SCRUB)
+discard few extreme outliers (@score_dolui). Furthermore,Structural Correlation with RobUst Bayesian (SCRUB)
 algorithms was applied to the CBF by iteratively reweighted  CBF  with structural tissues probalility maps 
-@scrub_dolui.  Alternate method of CBF computation is Bayesian Inference for Arterial Spin Labeling (BASIL) @chappell_basil 
-as implmented in FSL which is  based on Bayeisan inference principles. BASIL computed the CBF from ASL incoporating natural 
-varaibility of other model parameters and spatial regularization of the estimated perfusion image. 
-BASIL also included correction for partial volume effects @chappell_pvc.  
+(@scrub_dolui).  Alternate method of CBF computation is Bayesian Inference for Arterial Spin Labeling (BASIL) 
+as implmented in FSL which is  based on Bayeisan inference principles (@chappell_basil). 
+BASIL computed the CBF from ASL incoporating natural varaibility of other model parameters and spatial regularization 
+of the estimated perfusion image. BASIL also included correction for partial volume effects (@chappell_pvc).  
 """
     
 
@@ -131,12 +131,11 @@ BASIL also included correction for partial volume effects @chappell_pvc.
 def init_cbfqc_compt_wf(mem_gb,bold_file,metadata,omp_nthreads, name='cbfqc_compt_wf'):
     workflow = Workflow(name=name)
     workflow.__desc__ = """\
-Due to low signal to noise ratio and sensitivity, the following quality control (qc) measures was estimated: 
-framewise displacement and relative root mean square dice index. Other qc meaure include dice and jaccard indices, 
-cross-correlation and coverage that estimate the coregistration  quality of  ASL and T1W images and  
-normalization quality of ASL to template. Quality evaluation index , QEI, was alsoc computed for CBF @cbfqc. The  QEI is  automated 
-for objective quality evaluation of CBF maps and measured the CBF quality based on structural similarity,
- spatial variability and the percentatge  of voxels with  negtaive  CBF within Grey matter 
+The following quality control (qc) measures was estimated: framewise displacement and relative root mean square dice index. 
+Other qc meaure include dice and jaccard indices, cross-correlation and coverage that estimate the coregistration  
+quality of  ASL and T1W images and  normalization quality of ASL to template. Quality evaluation index (QEI) 
+was also computed for CBF (@cbfqc). The  QEI is  automated for objective quality evaluation of CBF maps and measured 
+the CBF quality based on structural similarity,spatial variability and the percentatge  of voxels with  negtaive  CBF within Grey matter 
 
 """
     inputnode = pe.Node(niu.IdentityInterface(
