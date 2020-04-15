@@ -508,12 +508,12 @@ def init_single_subject_wf(
     workflow = Workflow(name=name)
     workflow.__desc__ = """
 Results included in this manuscript come from preprocessing
-performed using *ASLPrep* {fmriprep_ver}
+performed using *ASLPrep* {aslprep_ver}
 (RRID:SCR_016216),
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
-""".format(fmriprep_ver=__version__, nipype_ver=nipype_ver)
+""".format(aslprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
 Many internal operations of *ASLPrep* use
