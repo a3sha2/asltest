@@ -45,8 +45,8 @@ def start_ping(run_uuid, npart):
         if run_uuid:
             scope.set_tag('run_uuid', run_uuid)
         scope.set_tag('npart', npart)
-    sentry_sdk.add_breadcrumb(message='fMRIPrep started', level='info')
-    sentry_sdk.capture_message('fMRIPrep started', level='info')
+    sentry_sdk.add_breadcrumb(message='aslprep started', level='info')
+    sentry_sdk.capture_message('aslprep started', level='info')
 
 
 def sentry_setup(opts, exec_env):
@@ -60,17 +60,17 @@ def sentry_setup(opts, exec_env):
     if not __version__:
         environment = "dev"
         release = "dev"
-    elif int(os.getenv('FMRIPREP_DEV', '0')) or ('+' in __version__):
+    elif int(os.getenv('aslprep_DEV', '0')) or ('+' in __version__):
         environment = "dev"
 
-    sentry_sdk.init("https://d1584dfc93b9fb1ade6@sentry.io/118997693",
+    sentry_sdk.init("https://d1584dfcb1ade6@sentry.io/118997693",
                     release=release,
                     environment=environment,
                     before_send=before_send)
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag('exec_env', exec_env)
 
-        if exec_env == 'fmriprep-docker':
+        if exec_env == 'aslprep-docker':
             scope.set_tag('docker_version', os.getenv('DOCKER_VERSION_8395080871'))
 
         dset_desc_path = opts.bids_dir / 'dataset_description.json'

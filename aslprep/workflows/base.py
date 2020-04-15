@@ -87,11 +87,11 @@ def init_aslprep_wf(
             import os
             from collections import namedtuple, OrderedDict
             BIDSLayout = namedtuple('BIDSLayout', ['root'])
-            from aslprep.workflows.base import init_fmriprep_wf
+            from aslprep.workflows.base import init_aslprep_wf
             from ..niworkflows.utils.spaces import Reference, SpatialReferences
 
             os.environ['FREESURFER_HOME'] = os.getcwd()
-            wf = init_fmriprep_wf(
+            wf = init_aslprep_wf(
                 anat_only=False,
                 aroma_melodic_dim=-200,
                 bold2t1w_dof=9,
