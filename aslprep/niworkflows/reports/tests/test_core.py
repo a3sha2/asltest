@@ -8,7 +8,7 @@ from itertools import product
 from yaml import safe_load as load
 
 import matplotlib.pyplot as plt
-from bids.layout.writing import build_path
+from ....pybids.layout.writing import build_path
 
 import pytest
 
