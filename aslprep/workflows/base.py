@@ -24,7 +24,7 @@ from ..niworkflows.interfaces.bids import (
 )
 from ..niworkflows.utils.bids import collect_data
 from ..niworkflows.utils.misc import fix_multi_T1w_source_name
-from smriprep.workflows.anatomical import init_anat_preproc_wf
+from ..smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from ..interfaces import SubjectSummary, AboutSummary, DerivativesDataSink
 from ..__about__ import __version__
@@ -535,23 +535,6 @@ def init_single_subject_wf(
                             desc='about', keep_dtype=True),
         name='ds_report_about', run_without_submitting=True)
 
-    # Preprocessing of T1w (includes registration to MNI)
-    anat_preproc_wf = init_anat_preproc_wf(
-        bids_root=layout.root,
-        debug=debug,
-        freesurfer=freesurfer,
-        hires=hires,
-        longitudinal=longitudinal,
-        name="anat_preproc_wf",
-        num_t1w=len(subject_data['t1w']),
-        omp_nthreads=omp_nthreads,
-        output_dir=output_dir,
-        reportlets_dir=reportlets_dir,
-        spaces=spaces,
-        skull_strip_fixed_seed=skull_strip_fixed_seed,
-        skull_strip_template=skull_strip_template,
-    )
-
     workflow.__desc__ = """
 Results included in this manuscript come from preprocessing
 performed using *ASLPrep* {aslprep_ver}
@@ -559,10 +542,7 @@ performed using *ASLPrep* {aslprep_ver}
 which is based on *Nipype* {nipype_ver}
 (@nipype1; @nipype2; RRID:SCR_002502).
 
-{anat_desc}
-
-""".format(aslprep_ver=__version__, nipype_ver=nipype_ver,
-anat_desc=anat_preproc_wf.__desc__)
+""".format(aslprep_ver=__version__, nipype_ver=nipype_ver)
     workflow.__postdesc__ = """
 
 Many internal operations of *ASLPrep* use
@@ -585,7 +565,23 @@ It is released under the [CC0]\
 ### References
 
 """.format(nilearn_ver=NILEARN_VERSION)
-    
+
+    # Preprocessing of T1w (includes registration to MNI)
+    anat_preproc_wf = init_anat_preproc_wf(
+        bids_root=layout.root,
+        debug=debug,
+        freesurfer=freesurfer,
+        hires=hires,
+        longitudinal=longitudinal,
+        name="anat_preproc_wf",
+        num_t1w=len(subject_data['t1w']),
+        omp_nthreads=omp_nthreads,
+        output_dir=output_dir,
+        reportlets_dir=reportlets_dir,
+        spaces=spaces,
+        skull_strip_fixed_seed=skull_strip_fixed_seed,
+        skull_strip_template=skull_strip_template,
+    )
 
     workflow.connect([
         (inputnode, anat_preproc_wf, [('subjects_dir', 'inputnode.subjects_dir')]),
