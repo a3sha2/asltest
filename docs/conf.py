@@ -24,7 +24,7 @@ from packaging import version as pver  # Avoid distutils.LooseVersion which is d
 sys.path.append(os.path.abspath("sphinxext"))
 sys.path.insert(0, os.path.abspath("../wrapper"))
 
-from github_link import make_linkcode_resolve
+from sphinxext.github_linkimport make_linkcode_resolve
 
 # -- General configuration ------------------------------------------------
 
@@ -243,7 +243,7 @@ html_static_path = ["_static"]
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "fmriprepdoc"
+htmlhelp_basename = "aslprepdoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -265,7 +265,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "fmriprep.tex", "fMRIprep Documentation",
+    (master_doc, "aslprep.tex", "ASLprep Documentation",
      author,
      "manual"),
 ]
@@ -296,7 +296,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "fmriprep", "fmriprep Documentation",
+    (master_doc, "aslprep", "aslprep Documentation",
      [author], 1)
 ]
 
@@ -310,8 +310,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, "fmriprep", "fMRIprep Documentation",
-     author, "fmriprep", "One line description of project.",
+    (master_doc, "aslprep", "ASLprep Documentation",
+     author, "aslprep", "One line description of project.",
      "Miscellaneous"),
 ]
 
@@ -328,9 +328,9 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 # The following is used by sphinx.ext.linkcode to provide links to github
-linkcode_resolve = make_linkcode_resolve("fmriprep",
-                                         "https://github.com/poldracklab/"
-                                         "fmriprep/blob/{revision}/"
+linkcode_resolve = make_linkcode_resolve("aslprep",
+                                         "https://github.com/pennlinc/"
+                                         "aslprep/blob/{revision}/"
                                          "{package}/{path}#L{lineno}")
 
 # Example configuration for intersphinx: refer to the Python standard library.
