@@ -231,22 +231,8 @@ def get_parser():
     g_other.add_argument('--pcasl', action='store_true', default=True,
                          help='Use low-quality tools for speed - TESTING ONLY')
 
-    latest = check_latest()
-    if latest is not None and currentv < latest:
-        print("""\
-You are using ASLPrep-%s, and a newer version of ASLPrep is available: %s.
-Please check out our documentation about how and when to upgrade:
-https://aslprep.readthedocs.io/en/latest/faq.html#upgrading""" % (
-            __version__, latest), file=sys.stderr)
-
-    _blist = is_flagged()
-    if _blist[0]:
-        _reason = _blist[1] or 'unknown'
-        print("""\
-WARNING: Version %s of ASLPrep (current) has been FLAGGED
-(reason: %s).
-That means some severe flaw was found in it and we strongly
-discourage its usage.""" % (__version__, _reason), file=sys.stderr)
+    #latest = check_latest()
+    #if latest is not None and currentv < latest:
 
     return parser
 
