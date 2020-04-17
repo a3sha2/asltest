@@ -273,6 +273,8 @@ def init_func_preproc_wf(
     * :py:func:`~aslprep.workflows.bold.resampling.init_bold_std_trans_wf`
     * :py:func:`~aslprep.workflows.bold.resampling.init_bold_preproc_trans_wf`
     * :py:func:`~aslprep.workflows.bold.resampling.init_bold_surf_wf`
+    * :py:func:`~aslprep.workflows.bold.cbf.init_cbf_compt_wf`
+    * :py:func:`~aslprep.workflows.bold.cbf.init_cbfqc_compt_wf`
     * :py:func:`~sdcflows.workflows.fmap.init_fmap_wf`
     * :py:func:`~sdcflows.workflows.pepolar.init_pepolar_unwarp_wf`
     * :py:func:`~sdcflows.workflows.phdiff.init_phdiff_wf`

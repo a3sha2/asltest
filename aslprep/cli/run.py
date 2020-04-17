@@ -229,7 +229,8 @@ def get_parser():
     g_other.add_argument('--sloppy', action='store_true', default=False,
                          help='Use low-quality tools for speed - TESTING ONLY')
     g_other.add_argument('--pcasl', action='store_true', default=True,
-                         help='Use low-quality tools for speed - TESTING ONLY')
+                         help='PCASL or PASL, if not the CBF computation will assume PASL \
+                             it is also secified in ASL metadata')
 
     #latest = check_latest()
     #if latest is not None and currentv < latest:

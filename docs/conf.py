@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# fmriprep documentation build configuration file, created by
+# aslprep documentation build configuration file, created by
 # sphinx-quickstart on Mon May  9 09:04:25 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -21,10 +21,10 @@ from packaging import version as pver  # Avoid distutils.LooseVersion which is d
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath("sphinxext"))
+sys.path.append(os.path.abspath("sphinxext")) 
 sys.path.insert(0, os.path.abspath("../wrapper"))
 
-from sphinxext.github_linkimport make_linkcode_resolve
+from github_link import make_linkcode_resolve
 
 # -- General configuration ------------------------------------------------
 
@@ -86,9 +86,9 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "fmriprep"
-author = "The fMRIPrep developers"
-copyright = "2016-%s, %s" % (datetime.now().year, author)
+project = "aslprep"
+author = "The ASLPREP developers"
+copyright = "2020-%s, %s" % (datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -161,7 +161,7 @@ html_theme = "sphinx_rtd_theme"
 
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
-# html_title = u'fmriprep vversion'
+# html_title = u'aslprep vversion'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None
@@ -342,9 +342,7 @@ intersphinx_mapping = {
     "bids": ("https://bids-standard.github.io/pybids/", None),
     "nibabel": ("https://nipy.org/nibabel/", None),
     "nipype": ("https://nipype.readthedocs.io/en/latest/", None),
-    "niworkflows": ("https://poldracklab.github.io/niworkflows/", None),
     "sdcflows": ("https://www.nipreps.org/sdcflows/", None),
-    "smriprep": ("https://poldracklab.github.io/smriprep/", None),
     "templateflow": ("https://www.templateflow.org/python-client", None),
 }
 
